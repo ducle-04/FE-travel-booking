@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
 
 interface Testimonial {
     id: number;
@@ -10,10 +11,16 @@ interface Testimonial {
     text: string;
 }
 
+interface CustomVariants {
+    [key: string]: any;
+}
+
 interface TestimonialsCarouselProps { }
 
 const TestimonialsCarousel: React.FC<TestimonialsCarouselProps> = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: '-100px' });
 
     const testimonials: Testimonial[] = [
         {
@@ -58,26 +65,58 @@ const TestimonialsCarousel: React.FC<TestimonialsCarouselProps> = () => {
         const diff = index - currentIndex;
 
         if (diff === 0) {
-            return 'translate-x-0 scale-110 opacity-100 z-30'; // Card chính luôn phóng to
+            return 'translate-x-0 scale-110 opacity-100 z-30';
         } else if (diff === -1) {
-            return '-translate-x-[105%] scale-90 opacity-50 z-10'; // Card liền trước (bên trái)
+            return '-translate-x-[105%] scale-90 opacity-50 z-10';
         } else if (diff === 1) {
-            return 'translate-x-[105%] scale-90 opacity-50 z-10'; // Card liền sau (bên phải)
+            return 'translate-x-[105%] scale-90 opacity-50 z-10';
         } else {
-            return 'translate-x-0 scale-75 opacity-0 z-0'; // Các card khác ẩn
+            return 'translate-x-0 scale-75 opacity-0 z-0';
         }
+    };
+
+    const headerVariants: CustomVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.4, 2, 0.6, 1] } },
+    };
+
+    const carouselVariants: CustomVariants = {
+        hidden: { opacity: 0, y: 50 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 0.6,
+                ease: [0.4, 2, 0.6, 1],
+                when: 'beforeChildren',
+                staggerChildren: 0.2,
+            },
+        },
     };
 
     return (
         <div className="min-h-screen bg-gray-100 flex items-center justify-center py-16 px-4">
             <div className="max-w-6xl w-full">
                 {/* Tiêu đề */}
-                <h2 className="text-5xl md:text-6xl font-bold text-center mb-20 text-gray-900 leading-tight px-4">
-                    Những gì khách hàng<br />nói về chúng tôi
-                </h2>
+                <motion.div
+                    variants={headerVariants}
+                    initial="hidden"
+                    animate={isInView ? 'visible' : 'hidden'}
+                    className="text-center mb-20"
+                >
+                    <h2 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight px-4">
+                        Những gì khách hàng<br />nói về chúng tôi
+                    </h2>
+                </motion.div>
 
                 {/* Carousel Container */}
-                <div className="relative h-96 mb-16">
+                <motion.div
+                    ref={ref}
+                    variants={carouselVariants}
+                    initial="hidden"
+                    animate={isInView ? 'visible' : 'hidden'}
+                    className="h-96 mb-16"
+                >
                     <div className="relative w-full h-full flex items-center justify-center">
                         {testimonials.map((testimonial, index) => (
                             <div
@@ -127,7 +166,7 @@ const TestimonialsCarousel: React.FC<TestimonialsCarouselProps> = () => {
                             </div>
                         ))}
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Dots Navigation */}
                 <div className="flex justify-center gap-3">
@@ -136,7 +175,7 @@ const TestimonialsCarousel: React.FC<TestimonialsCarouselProps> = () => {
                             key={index}
                             onClick={() => goToSlide(index)}
                             className={`h-3 rounded-full transition-all duration-300 ${index === currentIndex
-                                ? 'bg-teal-500 w-8'
+                                ? 'bg-cyan-500 w-8'
                                 : 'bg-gray-300 w-3'
                                 }`}
                             aria-label={`Chuyển đến đánh giá ${index + 1}`}

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { FaUser, FaUserTag, FaEnvelope, FaPhone, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { registerUser } from '../../services/authService';
+import { validateRegisterForm } from '../../utils/formValidation';
 
 const RegisterPage: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -13,6 +15,7 @@ const RegisterPage: React.FC = () => {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showPassword, setShowPassword] = useState(false);
+    const [success, setSuccess] = useState('');
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [serverError, setServerError] = useState<string>('');
     const [loading, setLoading] = useState(false);
@@ -29,39 +32,12 @@ const RegisterPage: React.FC = () => {
                 return newErrors;
             });
         }
-        setServerError(''); // Clear server error on change
+        setServerError('');
     };
 
     const handleRegister = async (e: React.MouseEvent) => {
         e.preventDefault();
-        const newErrors: Record<string, string> = {};
-
-        if (!formData.fullName.trim()) {
-            newErrors.fullName = 'Họ và tên không được để trống';
-        }
-        if (!formData.username.trim()) {
-            newErrors.username = 'Tên đăng nhập không được để trống';
-        }
-        if (!formData.email.trim()) {
-            newErrors.email = 'Email không được để trống';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = 'Email không hợp lệ';
-        }
-        if (!formData.phone.trim()) {
-            newErrors.phone = 'Số điện thoại không được để trống';
-        } else if (!/^\d{9,11}$/.test(formData.phone.replace(/[^\d]/g, ''))) {
-            newErrors.phone = 'Số điện thoại không hợp lệ (9-11 chữ số)';
-        }
-        if (!formData.password) {
-            newErrors.password = 'Mật khẩu không được để trống';
-        } else if (formData.password.length < 6) {
-            newErrors.password = 'Mật khẩu phải ít nhất 6 ký tự';
-        }
-        if (!formData.confirmPassword) {
-            newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
-        } else if (formData.password !== formData.confirmPassword) {
-            newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
-        }
+        const newErrors = validateRegisterForm(formData);
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -72,40 +48,29 @@ const RegisterPage: React.FC = () => {
         setServerError('');
 
         try {
-            const response = await fetch('http://localhost:8080/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username: formData.username,
-                    password: formData.password,
-                    email: formData.email,
-                    fullname: formData.fullName, // Map với fullname ở BE
-                    phoneNumber: formData.phone,
-                }),
+            const data = await registerUser({
+                username: formData.username,
+                password: formData.password,
+                email: formData.email,
+                fullname: formData.fullName,
+                phoneNumber: formData.phone,
             });
 
-            if (response.ok) {
-                const data = await response.text(); // BE trả về String message
-                alert(data || 'Đăng ký thành công!');
-                setFormData({
-                    fullName: '',
-                    username: '',
-                    email: '',
-                    phone: '',
-                    password: '',
-                    confirmPassword: '',
-                });
-                setErrors({});
+            setSuccess(data || 'Đăng ký thành công!');
+            setFormData({
+                fullName: '',
+                username: '',
+                email: '',
+                phone: '',
+                password: '',
+                confirmPassword: '',
+            });
+            setErrors({});
+            setTimeout(() => {
                 navigate('/login');
-            } else {
-                const errorText = await response.text();
-                setServerError(errorText || 'Đăng ký thất bại. Vui lòng thử lại.');
-            }
-        } catch (error) {
-            console.error('Error during registration:', error);
-            setServerError('Lỗi kết nối server. Vui lòng kiểm tra mạng hoặc thử lại sau.');
+            }, 500);
+        } catch (error: any) {
+            setServerError(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
         } finally {
             setLoading(false);
         }
@@ -120,6 +85,12 @@ const RegisterPage: React.FC = () => {
                         <p className="text-gray-600">Tạo tài khoản mới trên WonderTrail</p>
                     </div>
 
+                    {success && (
+                        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 transition-opacity duration-500">
+                            {success}
+                        </div>
+                    )}
+
                     {serverError && (
                         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                             {serverError}
@@ -127,7 +98,6 @@ const RegisterPage: React.FC = () => {
                     )}
 
                     <div className="space-y-4">
-                        {/* Họ và tên */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Họ và tên
@@ -140,8 +110,7 @@ const RegisterPage: React.FC = () => {
                                     value={formData.fullName}
                                     onChange={handleChange}
                                     placeholder="Nhập họ và tên"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.fullName ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                        }`}
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.fullName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                                 />
                             </div>
                             {errors.fullName && (
@@ -149,7 +118,6 @@ const RegisterPage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Tên đăng nhập */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Tên đăng nhập
@@ -162,8 +130,7 @@ const RegisterPage: React.FC = () => {
                                     value={formData.username}
                                     onChange={handleChange}
                                     placeholder="Nhập tên đăng nhập"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                        }`}
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                                 />
                             </div>
                             {errors.username && (
@@ -171,7 +138,6 @@ const RegisterPage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Email */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Email
@@ -184,8 +150,7 @@ const RegisterPage: React.FC = () => {
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="Nhập email"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                        }`}
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                                 />
                             </div>
                             {errors.email && (
@@ -193,7 +158,6 @@ const RegisterPage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Số điện thoại */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Số điện thoại
@@ -206,8 +170,7 @@ const RegisterPage: React.FC = () => {
                                     value={formData.phone}
                                     onChange={handleChange}
                                     placeholder="Nhập số điện thoại"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                        }`}
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                                 />
                             </div>
                             {errors.phone && (
@@ -215,7 +178,6 @@ const RegisterPage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Mật khẩu */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Mật khẩu
@@ -228,8 +190,7 @@ const RegisterPage: React.FC = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Nhập mật khẩu"
-                                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                        }`}
+                                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                                 />
                                 <button
                                     type="button"
@@ -244,7 +205,6 @@ const RegisterPage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Xác nhận mật khẩu */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Xác nhận mật khẩu
@@ -257,8 +217,7 @@ const RegisterPage: React.FC = () => {
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     placeholder="Nhập lại mật khẩu"
-                                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                        }`}
+                                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                                 />
                                 <button
                                     type="button"

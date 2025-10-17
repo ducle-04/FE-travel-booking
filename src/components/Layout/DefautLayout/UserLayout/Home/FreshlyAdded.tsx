@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
 
 interface TourCard {
     id: number;
@@ -12,8 +13,14 @@ interface TourCard {
     image: string;
 }
 
+interface CustomVariants {
+    [key: string]: any;
+}
+
 const FreshlyAdded: React.FC = () => {
     const [currentIndex, setCurrentIndex] = useState<number>(0);
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: '-100px' });
 
     const tours: TourCard[] = [
         {
@@ -73,9 +80,39 @@ const FreshlyAdded: React.FC = () => {
             price: '$1,899',
             image: 'https://images.unsplash.com/photo-1551641506-ee3e31c8f9ab?w=800&h=600&fit=crop',
         },
+        {
+            id: 7,
+            title: 'Tokyo Hoa Anh Đào',
+            badge: null,
+            rating: 4.8,
+            reviews: 45,
+            originalPrice: '$2,500',
+            price: '$1,899',
+            image: 'https://images.unsplash.com/photo-1551641506-ee3e31c8f9ab?w=800&h=600&fit=crop',
+        },
+        {
+            id: 8,
+            title: 'Tokyo Hoa Anh Đào',
+            badge: null,
+            rating: 4.8,
+            reviews: 45,
+            originalPrice: '$2,500',
+            price: '$1,899',
+            image: 'https://images.unsplash.com/photo-1551641506-ee3e31c8f9ab?w=800&h=600&fit=crop',
+        },
+        {
+            id: 9,
+            title: 'Tokyo Hoa Anh Đào',
+            badge: null,
+            rating: 4.8,
+            reviews: 45,
+            originalPrice: '$2,500',
+            price: '$1,899',
+            image: 'https://images.unsplash.com/photo-1551641506-ee3e31c8f9ab?w=800&h=600&fit=crop',
+        },
     ];
 
-    const itemsPerView: number = 5; // Giữ 5 item mỗi lần, nhưng điều chỉnh nếu cần
+    const itemsPerView: number = 5;
     const maxIndex: number = Math.max(0, Math.ceil(tours.length / itemsPerView) - 1);
 
     const handleNext = (): void => {
@@ -91,6 +128,34 @@ const FreshlyAdded: React.FC = () => {
         Math.min((currentIndex + 1) * itemsPerView, tours.length)
     );
 
+    const headerVariants: CustomVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.4, 2, 0.6, 1] } },
+    };
+
+    const cardVariants: CustomVariants = {
+        hidden: { opacity: 0, y: 50 },
+        visible: (index: number) => ({
+            opacity: 1,
+            y: 0,
+            transition: {
+                delay: index * 0.2,
+                duration: 0.6,
+                ease: [0.4, 2, 0.6, 1],
+            },
+        }),
+    };
+
+    const imageVariants: CustomVariants = {
+        initial: { scale: 1 },
+        hover: { scale: 1.1, transition: { duration: 0.5 } },
+    };
+
+    const overlayVariants: CustomVariants = {
+        initial: { background: 'rgba(0, 0, 0, 0.2)' },
+        hover: { background: 'rgba(0, 0, 0, 0.3)', transition: { duration: 0.5 } },
+    };
+
     const renderStars = (rating: number, reviews: number): React.ReactNode => {
         if (rating === 0) return <div className="h-5"></div>;
         return (
@@ -100,9 +165,9 @@ const FreshlyAdded: React.FC = () => {
                         <Star
                             key={i}
                             className={`w-3.5 h-3.5 ${i < Math.floor(rating)
-                                ? 'fill-orange-400 text-orange-400'
+                                ? 'fill-yellow-400 text-yellow-400'
                                 : i < rating
-                                    ? 'fill-orange-400 text-orange-400 opacity-50'
+                                    ? 'fill-yellow-400 text-yellow-400 opacity-50'
                                     : 'text-gray-300'
                                 }`}
                         />
@@ -116,24 +181,29 @@ const FreshlyAdded: React.FC = () => {
     return (
         <div className="bg-gradient-to-br from-slate-50 to-slate-100 py-16 px-4 sm:px-6 lg:px-8">
             {/* Tiêu đề */}
-            <div className="max-w-7xl mx-auto text-center mb-12">
+            <motion.div
+                variants={headerVariants}
+                initial="hidden"
+                animate={isInView ? 'visible' : 'hidden'}
+                className="max-w-7xl mx-auto text-center mb-12"
+            >
                 <h1 className="text-5xl md:text-6xl font-bold mb-2">
-                    Mới <span className="text-teal-500">Thêm</span>
+                    Mới <span className="text-cyan-500">Thêm</span>
                 </h1>
-            </div>
+            </motion.div>
 
             {/* Carousel Container */}
-            <div className="max-w-7xl mx-auto relative">
+            <div ref={ref} className="max-w-7xl mx-auto relative">
                 {/* Navigation Buttons */}
                 <button
                     onClick={handlePrev}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-400 hover:text-teal-500 transition-all duration-300 hover:bg-teal-50"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-400 hover:text-cyan-500 transition-all duration-300 hover:bg-cyan-50"
                 >
                     <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button
                     onClick={handleNext}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-400 hover:text-teal-500 transition-all duration-300 hover:bg-teal-50"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-400 hover:text-cyan-500 transition-all duration-300 hover:bg-cyan-50"
                 >
                     <ChevronRight className="w-6 h-6" />
                 </button>
@@ -141,56 +211,64 @@ const FreshlyAdded: React.FC = () => {
                 {/* Tours Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 px-4">
                     {visibleTours.map((tour: TourCard, idx: number) => (
-                        <div
+                        <motion.div
                             key={tour.id}
-                            className="group cursor-pointer transition-all duration-300"
-                            style={{
-                                animation: `slideIn 0.5s ease-out ${idx * 0.05}s both`,
-                            }}
+                            custom={idx}
+                            variants={cardVariants}
+                            initial="hidden"
+                            animate={isInView ? 'visible' : 'hidden'}
+                            className="group cursor-pointer"
                         >
-                            <style>{`
-                                @keyframes slideIn {
-                                    from {
-                                        opacity: 0;
-                                        transform: translateY(20px);
-                                    }
-                                    to {
-                                        opacity: 1;
-                                        transform: translateY(0);
-                                    }
-                                }
-                            `}</style>
-
                             {/* Card Container */}
                             <div className="rounded-2xl overflow-hidden bg-white shadow-md h-[360px] flex flex-col transition-all duration-300 hover:shadow-xl">
                                 {/* Image */}
-                                <div className="relative h-48 overflow-hidden group/image">
+                                <motion.div
+                                    variants={imageVariants}
+                                    initial="initial"
+                                    whileHover="hover"
+                                    className="relative h-48 overflow-hidden"
+                                >
                                     <div
-                                        className="absolute inset-0 transition-transform duration-500 group-hover/image:scale-110"
+                                        className="absolute inset-0"
                                         style={{
                                             backgroundImage: `url(${tour.image})`,
                                             backgroundSize: 'cover',
                                             backgroundPosition: 'center',
                                         }}
                                     ></div>
-                                    <div className="absolute inset-0 bg-black/20 transition-opacity duration-500 group-hover/image:bg-black/30"></div>
+                                    <motion.div
+                                        variants={overlayVariants}
+                                        initial="initial"
+                                        whileHover="hover"
+                                        className="absolute inset-0"
+                                    ></motion.div>
 
                                     {/* Badge */}
                                     {tour.badge && (
-                                        <div className="absolute top-3 right-3 z-10">
-                                            <span className="bg-teal-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                                        <motion.div
+                                            variants={cardVariants}
+                                            custom={idx}
+                                            initial="hidden"
+                                            animate={isInView ? 'visible' : 'hidden'}
+                                            className="absolute top-3 right-3 z-10"
+                                        >
+                                            <span className="bg-cyan-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
                                                 {tour.badge}
                                             </span>
-                                        </div>
+                                        </motion.div>
                                     )}
-                                </div>
+                                </motion.div>
 
                                 {/* Content */}
                                 <div className="p-4 flex flex-col justify-between flex-1">
                                     <div>
-                                        <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-teal-600 transition-colors duration-300">
+                                        <motion.h3
+                                            whileHover={{ x: 5 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-cyan-600 transition-colors duration-300"
+                                        >
                                             {tour.title}
-                                        </h3>
+                                        </motion.h3>
                                         {renderStars(tour.rating, tour.reviews)}
                                     </div>
                                     <div className="space-y-1">
@@ -199,13 +277,13 @@ const FreshlyAdded: React.FC = () => {
                                                 {tour.originalPrice}
                                             </p>
                                         )}
-                                        <p className="text-lg font-bold text-teal-600">
+                                        <p className="text-lg font-bold text-cyan-600">
                                             {tour.price}
                                         </p>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
                 </div>
 
@@ -213,10 +291,12 @@ const FreshlyAdded: React.FC = () => {
                 <div className="flex justify-center gap-2 mt-12">
                     {[...Array(Math.ceil(tours.length / itemsPerView))].map(
                         (_: any, idx: number) => (
-                            <button
+                            <motion.button
                                 key={idx}
                                 onClick={() => setCurrentIndex(idx)}
-                                className={`w-3 h-3 rounded-full transition-all duration-300 ${idx === currentIndex ? 'bg-teal-500 w-8' : 'bg-gray-300 hover:bg-gray-400'}`}
+                                whileHover={{ scale: 1.2 }}
+                                transition={{ duration: 0.3 }}
+                                className={`w-3 h-3 rounded-full transition-all duration-300 ${idx === currentIndex ? 'bg-cyan-500 w-8' : 'bg-gray-300 hover:bg-gray-400'}`}
                             />
                         )
                     )}

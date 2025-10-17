@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, MapPin, Calendar, Star } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
 
 interface Tour {
     id: number;
@@ -13,9 +14,23 @@ interface Tour {
     badge: string | null;
 }
 
+interface CustomVariants {
+    [key: string]: any;
+}
+
+const THEME_COLOR = {
+    primary: 'cyan-500',
+    hover: 'cyan-600',
+    light: 'cyan-300',
+    accent: 'cyan-400',
+};
+
 const PopularTours: React.FC = () => {
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [expandedCard, setExpandedCard] = useState<number | null>(null);
+    const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: '-100px' });
 
     const tours: Tour[] = [
         {
@@ -87,14 +102,22 @@ const PopularTours: React.FC = () => {
     ];
 
     const itemsPerView: number = 3;
-    const maxIndex: number = Math.ceil(tours.length / itemsPerView) - 1;
+    const maxIndex: number = tours.length - itemsPerView;
 
     const handleNext = (): void => {
-        setCurrentIndex((prev) => (prev < maxIndex ? prev + 1 : 0));
+        if (!isTransitioning) {
+            setIsTransitioning(true);
+            setCurrentIndex((prev) => (prev < maxIndex ? prev + 1 : 0));
+            setTimeout(() => setIsTransitioning(false), 500);
+        }
     };
 
     const handlePrev = (): void => {
-        setCurrentIndex((prev) => (prev > 0 ? prev - 1 : maxIndex));
+        if (!isTransitioning) {
+            setIsTransitioning(true);
+            setCurrentIndex((prev) => (prev > 0 ? prev - 1 : maxIndex));
+            setTimeout(() => setIsTransitioning(false), 500);
+        }
     };
 
     const handleMouseEnter = (id: number): void => {
@@ -106,76 +129,134 @@ const PopularTours: React.FC = () => {
     };
 
     const visibleTours: Tour[] = tours.slice(
-        currentIndex * itemsPerView,
-        currentIndex * itemsPerView + itemsPerView
+        currentIndex,
+        currentIndex + itemsPerView
     );
+
+    const containerVariants: CustomVariants = {
+        hidden: { opacity: 0, y: 50 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 0.6,
+                ease: [0.4, 2, 0.6, 1],
+                when: 'beforeChildren',
+                staggerChildren: 0.2,
+            },
+        },
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-16 px-4 sm:px-6 lg:px-8">
+            <style>{`
+                @keyframes slideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                @keyframes slideInRight {
+                    from {
+                        opacity: 0;
+                        transform: translateX(100px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+
+                @keyframes slideOutLeft {
+                    from {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                    to {
+                        opacity: 0;
+                        transform: translateX(-100px);
+                    }
+                }
+
+                .tour-card {
+                    animation: slideInRight 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+                }
+
+                .tour-card-exit {
+                    animation: slideOutLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                }
+            `}</style>
+
             {/* Tiêu đề */}
-            <div className="max-w-7xl mx-auto text-center mb-12">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.6, ease: [0.4, 2, 0.6, 1] }}
+                className="max-w-7xl mx-auto text-center mb-12"
+            >
                 <h1 className="text-5xl md:text-6xl font-bold mb-6">
-                    Tour <span className="text-teal-500">Phổ Biến</span>
+                    Tour <span className={`text-${THEME_COLOR.primary}`}>Phổ Biến</span>
                 </h1>
-            </div>
+            </motion.div>
 
             {/* Carousel Container */}
-            <div className="max-w-7xl mx-auto relative">
+            <motion.div
+                ref={ref}
+                variants={containerVariants}
+                initial="hidden"
+                animate={isInView ? 'visible' : 'hidden'}
+                className="max-w-7xl mx-auto relative"
+            >
                 {/* Navigation Buttons */}
                 <button
                     onClick={handlePrev}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-700 hover:text-teal-500 transition-all duration-300 hover:bg-teal-50"
+                    disabled={isTransitioning}
+                    className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-700 hover:text-cyan-600 transition-all duration-300 hover:bg-cyan-100 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                     <ChevronLeft className="w-6 h-6" />
                 </button>
 
                 <button
                     onClick={handleNext}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-700 hover:text-teal-500 transition-all duration-300 hover:bg-teal-50"
+                    disabled={isTransitioning}
+                    className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-700 hover:text-cyan-600 transition-all duration-300 hover:bg-cyan-100 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                     <ChevronRight className="w-6 h-6" />
                 </button>
 
                 {/* Tours Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
-                    {visibleTours.map((tour: Tour, idx: number) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4 overflow-hidden">
+                    {visibleTours.map((tour: Tour) => (
                         <div
                             key={tour.id}
-                            className="group relative h-[480px] rounded-2xl overflow-hidden cursor-pointer transition-all duration-500"
+                            className="group relative h-[480px] rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 tour-card"
                             onMouseEnter={() => handleMouseEnter(tour.id)}
                             onMouseLeave={handleMouseLeave}
-                            style={{
-                                animation: `slideIn 0.5s ease-out ${idx * 0.1}s both`,
-                            }}
                         >
-                            <style>{`
-                                @keyframes slideIn {
-                                    from {
-                                        opacity: 0;
-                                        transform: translateY(20px);
-                                    }
-                                    to {
-                                        opacity: 1;
-                                        transform: translateY(0);
-                                    }
-                                }
-                            `}</style>
-
                             {/* Background Image */}
                             <div
-                                className="absolute inset-0 transition-transform duration-500 group-hover:scale-110"
-                                style={{ backgroundImage: `url(${tour.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                                className="absolute inset-0 transition-transform duration-1000 group-hover:scale-105"
+                                style={{
+                                    backgroundImage: `url(${tour.image})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center'
+                                }}
                             ></div>
 
                             {/* Overlay */}
                             <div
-                                className={`absolute inset-0 bg-black/40 transition-opacity duration-500 ${expandedCard === tour.id ? 'bg-black/60' : ''}`}
+                                className={`absolute inset-0 bg-black/50 transition-opacity duration-500 ${expandedCard === tour.id ? 'bg-black/70' : ''}`}
                             ></div>
 
                             {/* Badge */}
                             {tour.badge && (
                                 <div className="absolute top-4 right-4 z-20">
-                                    <span className="bg-teal-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+                                    <span className={`bg-cyan-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg`}>
                                         {tour.badge}
                                     </span>
                                 </div>
@@ -188,7 +269,7 @@ const PopularTours: React.FC = () => {
                                     : 'opacity-100'
                                     }`}
                             >
-                                <div></div> {/* Spacer trên */}
+                                <div></div>
                                 <h3 className="text-2xl font-bold text-white mb-4 line-clamp-2">
                                     {tour.title}
                                 </h3>
@@ -216,7 +297,7 @@ const PopularTours: React.FC = () => {
                                         {tour.title}
                                     </h3>
                                     {tour.badge && (
-                                        <span className="bg-teal-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg ml-4 whitespace-nowrap">
+                                        <span className={`bg-cyan-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg ml-4 whitespace-nowrap`}>
                                             {tour.badge}
                                         </span>
                                     )}
@@ -250,7 +331,7 @@ const PopularTours: React.FC = () => {
                                     </div>
 
                                     {/* View Details Button */}
-                                    <button className="text-teal-500 hover:text-teal-400 font-semibold text-sm transition-colors duration-300 flex items-center gap-2">
+                                    <button className={`text-cyan-300 hover:text-cyan-400 font-semibold text-sm transition-colors duration-300 flex items-center gap-2`}>
                                         Xem Chi Tiết <ChevronRight className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -259,11 +340,11 @@ const PopularTours: React.FC = () => {
                                 <div className="flex justify-between items-center pt-4 border-t border-white/20">
                                     <div>
                                         <p className="text-xs text-white/70 mb-1">Bắt đầu từ</p>
-                                        <p className="text-2xl font-bold text-teal-300">
+                                        <p className={`text-2xl font-bold text-cyan-300`}>
                                             {tour.price}
                                         </p>
                                     </div>
-                                    <button className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105">
+                                    <button className={`bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105`}>
                                         Đặt Ngay
                                     </button>
                                 </div>
@@ -274,20 +355,24 @@ const PopularTours: React.FC = () => {
 
                 {/* Pagination Dots */}
                 <div className="flex justify-center gap-2 mt-12">
-                    {[...Array(Math.ceil(tours.length / itemsPerView))].map(
+                    {[...Array(tours.length - itemsPerView + 1)].map(
                         (_: any, idx: number) => (
                             <button
                                 key={idx}
-                                onClick={() => setCurrentIndex(idx)}
-                                className={`w-3 h-3 rounded-full transition-all duration-300 ${idx === currentIndex
-                                    ? 'bg-teal-500 w-8'
-                                    : 'bg-gray-300 hover:bg-gray-400'
+                                onClick={() => {
+                                    if (!isTransitioning) {
+                                        setCurrentIndex(idx);
+                                    }
+                                }}
+                                className={`transition-all duration-300 rounded-full ${idx === currentIndex
+                                    ? `bg-cyan-500 w-8 h-3`
+                                    : 'bg-gray-300 hover:bg-gray-400 w-3 h-3'
                                     }`}
                             />
                         )
                     )}
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 };

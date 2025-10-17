@@ -8,10 +8,10 @@ const Header: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [username, setUsername] = useState<string>(''); // Lấy từ API
+    const [username, setUsername] = useState<string>('');
     const [openUserMenu, setOpenUserMenu] = useState(false);
 
-    const API_BASE_URL = 'http://localhost:8080'; // Thay nếu BE port khác
+    const API_BASE_URL = 'http://localhost:8080';
 
     useEffect(() => {
         const checkLoginStatus = async () => {
@@ -27,11 +27,10 @@ const Header: React.FC = () => {
                     });
 
                     if (response.ok) {
-                        const data = await response.json(); // UserDTO
+                        const data = await response.json();
                         setUsername(data.username || '');
                         setIsLoggedIn(true);
                     } else {
-                        // Unauthorized hoặc error → Logout
                         handleLogout();
                     }
                 } catch (error) {
@@ -50,7 +49,6 @@ const Header: React.FC = () => {
         };
         window.addEventListener("scroll", handleScroll);
 
-        // Listen for storage changes (login/logout ở tab khác)
         window.addEventListener("storage", checkLoginStatus);
 
         return () => {
@@ -82,12 +80,17 @@ const Header: React.FC = () => {
         setIsOpen(false);
     };
 
+    const handleLogoClick = () => {
+        navigate("/");
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     return (
         <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? "bg-white shadow-md" : "bg-transparent"}`}>
             <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
-                    <button onClick={() => handleNavigate("/")} className="flex items-center">
+                    <button onClick={handleLogoClick} className="flex items-center">
                         <img src={logoImg} alt="WonderTrail Logo" className="h-16 w-auto transition hover:scale-105" />
                     </button>
 
@@ -99,12 +102,12 @@ const Header: React.FC = () => {
                             { name: "Tour", to: "/tours" },
                             { name: "Blog", to: "/blog" },
                             { name: "Về chúng tôi", to: "/about" },
-                            { name: "Liên hệ", to: "/contact" }
+                            { name: "Liên hệ", to: "/contact" },
                         ].map((item) => (
                             <button
                                 key={item.name}
                                 onClick={() => handleNavigate(item.to)}
-                                className={`${isScrolled ? "text-gray-700 hover:text-teal-700" : "text-white hover:text-amber-300"} transition font-medium`}
+                                className={`text-gray-900 hover:text-cyan-600 transition font-medium`}
                             >
                                 {item.name}
                             </button>
@@ -123,8 +126,8 @@ const Header: React.FC = () => {
                             <button
                                 onClick={handleLogin}
                                 className={`${isScrolled
-                                    ? "bg-teal-800 text-white"
-                                    : "bg-white text-teal-800"} px-6 py-2 rounded-lg transition hover:opacity-90 font-semibold`}
+                                    ? "bg-cyan-800 text-white"
+                                    : "bg-white text-cyan-500"} px-6 py-2 rounded-lg transition hover:opacity-90 font-semibold`}
                             >
                                 Đăng nhập
                             </button>
@@ -133,7 +136,7 @@ const Header: React.FC = () => {
                                 <button
                                     onClick={() => setOpenUserMenu(!openUserMenu)}
                                     className={`flex items-center gap-2 px-3 py-1 border border-gray-300 rounded-full shadow-sm transition 
-                ${isScrolled ? "bg-white text-gray-800 hover:bg-gray-100" : "bg-white text-teal-800 hover:bg-teal-100"}`}
+                ${isScrolled ? "bg-white text-gray-800 hover:bg-gray-100" : "bg-white text-cyan-800 hover:bg-cyan-100"}`}
                                 >
                                     <User size={26} className="text-current" />
                                     <span className="font-medium">{username || 'User'}</span>
@@ -180,13 +183,13 @@ const Header: React.FC = () => {
                             <button
                                 key={item.name}
                                 onClick={() => handleNavigate(item.to)}
-                                className="block w-full text-left text-gray-700 hover:text-teal-700"
+                                className="block w-full text-left text-gray-700 hover:text-cyan-700"
                             >
                                 {item.name}
                             </button>
                         ))}
                         {!isLoggedIn ? (
-                            <button onClick={handleLogin} className="block w-full text-teal-800 hover:underline">
+                            <button onClick={handleLogin} className="block w-full text-cyan-800 hover:underline">
                                 Đăng nhập
                             </button>
                         ) : (

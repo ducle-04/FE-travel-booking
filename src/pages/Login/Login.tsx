@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { FaUser, FaLock, FaEye, FaEyeSlash, FaFacebook, FaTwitter, FaGoogle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { loginUser } from '../../services/authService';
+import { validateLoginForm } from '../../utils/formValidation';
 
 interface JwtPayload {
     sub: string;
-    roles?: string[]; // Roles trong token (từ JwtUtil)
+    roles?: string[];
 }
 
 const LoginPage: React.FC = () => {
@@ -19,12 +21,11 @@ const LoginPage: React.FC = () => {
 
     const navigate = useNavigate();
 
-    // Hàm decode JWT thủ công (tự code, không dùng thư viện)
     const decodeJwt = (token: string): JwtPayload => {
         try {
-            const base64Url = token.split('.')[1]; // Lấy phần payload
+            const base64Url = token.split('.')[1];
             if (!base64Url) {
-                return { sub: '', roles: [] }; // Fallback nếu token không hợp lệ
+                return { sub: '', roles: [] };
             }
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
             const jsonPayload = decodeURIComponent(
@@ -36,7 +37,7 @@ const LoginPage: React.FC = () => {
             return JSON.parse(jsonPayload) as JwtPayload;
         } catch (error) {
             console.warn('Không decode được token:', error);
-            return { sub: '', roles: [] }; // Fallback an toàn
+            return { sub: '', roles: [] };
         }
     };
 
@@ -58,10 +59,7 @@ const LoginPage: React.FC = () => {
 
     const handleLogin = async (e: React.MouseEvent) => {
         e.preventDefault();
-        const newErrors: { username?: string; password?: string } = {};
-
-        if (!username.trim()) newErrors.username = 'Tên đăng nhập không được để trống';
-        if (!password) newErrors.password = 'Mật khẩu không được để trống';
+        const newErrors = validateLoginForm({ username, password });
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -73,57 +71,41 @@ const LoginPage: React.FC = () => {
         setSuccess('');
 
         try {
-            const response = await fetch('http://localhost:8080/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
-            });
+            const data = await loginUser({ username, password });
 
-            if (response.ok) {
-                const data = await response.json(); // { token: "...", roles: [...] } nếu BE trả
-                const token = data.token;
-
-                // Extract roles: Ưu tiên từ response, fallback decode token thủ công
-                let roles: string[] = data.roles || [];
-                if (!roles.length && token) {
-                    try {
-                        const decoded: JwtPayload = decodeJwt(token);
-                        roles = decoded.roles || [];
-                    } catch (decodeError) {
-                        console.warn('Không decode được roles từ token');
-                    }
+            const token = data.token;
+            let roles: string[] = data.roles || [];
+            if (!roles.length && token) {
+                try {
+                    const decoded: JwtPayload = decodeJwt(token);
+                    roles = decoded.roles || [];
+                } catch (decodeError) {
+                    console.warn('Không decode được roles từ token');
                 }
-
-                // Lưu token
-                if (remember) localStorage.setItem('jwtToken', token);
-                else sessionStorage.setItem('jwtToken', token);
-
-                setSuccess('Đăng nhập thành công!');
-                setUsername('');
-                setPassword('');
-                setErrors({});
-
-                // Delay navigate để user thấy success message (0.5s)
-                setTimeout(() => {
-                    if (roles.includes('STAFF') || roles.includes('ADMIN')) { // Match với BE roles (ROLE_STAFF → "STAFF" sau replace)
-                        navigate('/admin');
-                    } else {
-                        navigate('/');
-                    }
-                }, 500);
-            } else {
-                const errorText = await response.text();
-                setServerError(errorText || 'Đăng nhập thất bại. Vui lòng thử lại.');
             }
-        } catch (error) {
-            console.error('Error during login:', error);
-            setServerError('Lỗi kết nối server. Vui lòng kiểm tra mạng hoặc thử lại sau.');
+
+            if (remember) localStorage.setItem('jwtToken', token);
+            else sessionStorage.setItem('jwtToken', token);
+
+            setSuccess('Đăng nhập thành công!');
+            setUsername('');
+            setPassword('');
+            setErrors({});
+
+            setTimeout(() => {
+                if (roles.includes('STAFF') || roles.includes('ADMIN')) {
+                    navigate('/admin');
+                } else {
+                    navigate('/');
+                }
+            }, 500);
+        } catch (error: any) {
+            setServerError(error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
         } finally {
             setLoading(false);
         }
     };
 
-    // Phần return giữ nguyên như code bạn, chỉ thêm class transition cho success div nếu cần fade out
     return (
         <div className="min-h-screen bg-gradient-to-br from-teal-50 to-blue-50 flex items-center justify-center px-4">
             <div className="w-full max-w-md">
@@ -143,9 +125,7 @@ const LoginPage: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Phần form giữ nguyên như code gốc của bạn */}
                     <div className="space-y-5">
-                        {/* Username */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Tên đăng nhập
@@ -157,14 +137,12 @@ const LoginPage: React.FC = () => {
                                     value={username}
                                     onChange={handleChangeUsername}
                                     placeholder="Nhập tên đăng nhập"
-                                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none ${errors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                        }`}
+                                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none ${errors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                                 />
                             </div>
                             {errors.username && <p className="text-red-500 text-sm">{errors.username}</p>}
                         </div>
 
-                        {/* Password */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Mật khẩu
@@ -176,8 +154,7 @@ const LoginPage: React.FC = () => {
                                     value={password}
                                     onChange={handleChangePassword}
                                     placeholder="Nhập mật khẩu"
-                                    className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                        }`}
+                                    className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                                 />
                                 <button
                                     type="button"
@@ -190,7 +167,6 @@ const LoginPage: React.FC = () => {
                             {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
                         </div>
 
-                        {/* Remember me */}
                         <div className="flex justify-between items-center text-sm">
                             <label className="flex items-center gap-2">
                                 <input
@@ -206,7 +182,6 @@ const LoginPage: React.FC = () => {
                             </a>
                         </div>
 
-                        {/* Login button */}
                         <button
                             onClick={handleLogin}
                             disabled={loading}
@@ -215,7 +190,6 @@ const LoginPage: React.FC = () => {
                             {loading ? 'Đang xử lý...' : 'Đăng nhập'}
                         </button>
 
-                        {/* Social login */}
                         <div className="mt-8">
                             <div className="flex items-center">
                                 <hr className="flex-grow border-t border-gray-300" />
@@ -250,7 +224,6 @@ const LoginPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Register redirect */}
                         <p className="text-center">
                             Chưa có tài khoản?{' '}
                             <button

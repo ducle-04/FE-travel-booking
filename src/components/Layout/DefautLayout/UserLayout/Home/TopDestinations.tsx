@@ -116,7 +116,7 @@ const TopDestinations: React.FC = () => {
                 className="max-w-7xl mx-auto text-center mb-16"
             >
                 <h1 className="text-5xl md:text-6xl font-bold mb-6">
-                    Điểm Đến <span className="text-teal-500">Hàng Đầu</span>
+                    Điểm Đến <span className="text-cyan-500">Hàng Đầu</span>
                 </h1>
                 <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
                     Khám phá các điểm đến hàng đầu được bình chọn bởi hơn 100,000+ khách hàng trên toàn thế giới.
@@ -171,7 +171,7 @@ const TopDestinations: React.FC = () => {
                             className="absolute inset-0 flex flex-col justify-between p-6"
                         >
                             <div className="flex justify-end">
-                                <span className="bg-teal-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                <span className="bg-cyan-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                                     {dest.tours} tour
                                 </span>
                             </div>
@@ -188,7 +188,7 @@ const TopDestinations: React.FC = () => {
                         >
                             <div className="flex justify-between items-start">
                                 <h2 className="text-3xl font-bold text-white flex-1">{dest.name}</h2>
-                                <span className="bg-teal-500 text-white px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-4">
+                                <span className="bg-cyan-500 text-white px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-4">
                                     {dest.tours} tour
                                 </span>
                             </div>
@@ -197,7 +197,7 @@ const TopDestinations: React.FC = () => {
                                 <motion.button
                                     whileHover={{ x: 5 }}
                                     transition={{ duration: 0.3 }}
-                                    className="text-teal-500 hover:text-teal-400 font-semibold text-sm flex items-center gap-2"
+                                    className="text-cyan-500 hover:text-cyan-400 font-semibold text-sm flex items-center gap-2"
                                 >
                                     Xem tất cả tour <ArrowRight className="w-4 h-4" />
                                 </motion.button>
