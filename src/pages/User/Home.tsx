@@ -1,5 +1,11 @@
 import React from "react";
 import Banner from "../../components/Layout/DefautLayout/UserLayout/Banner/Banner";
+import TopDestinations from "../../components/Layout/DefautLayout/UserLayout/Home/TopDestinations";
+import PopularTours from "../../components/Layout/DefautLayout/UserLayout/Home/PopularTours";
+import FreshlyAdded from "../../components/Layout/DefautLayout/UserLayout/Home/FreshlyAdded";
+import TravelDealsPage from "../../components/Layout/DefautLayout/UserLayout/Home/TravelDealsPage";
+import TestimonialsCarousel from "../../components/Layout/DefautLayout/UserLayout/Home/TestimonialsCarousel";
+import ScrollToTop from "../../components/OtherComponent/ScrollToTop"; // Điều chỉnh đường dẫn
 
 interface FeatureCardProps {
     icon: string;
@@ -25,94 +31,100 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, col
 };
 
 const Home: React.FC = () => {
+    // Hàm cuộn về đầu trang
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: "smooth" }); // Cuộn mượt mà
+    };
+
     return (
         <main className="w-full overflow-x-hidden">
+            <ScrollToTop /> {/* Giữ nguyên cho route-level */}
 
-            {/* ✅ Banner full màn hình */}
-            <section className="w-full">
-                <Banner />
-            </section>
+            <Banner />
 
-            {/* Explore Section */}
+            {/* Phần Khám Phá */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                     <div className="grid grid-cols-2 gap-4">
                         <img
-                            src="https://images.unsplash.com/photo-1528127269029-5b21c3758a21?w=300&h=300&fit=crop"
-                            alt="Temple"
+                            src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=300&h=300&fit=crop"
+                            alt="Đền"
                             className="rounded-3xl w-full h-80 object-cover"
                         />
                         <img
                             src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=300&h=300&fit=crop"
-                            alt="Beach"
+                            alt="Bãi biển"
                             className="rounded-3xl w-full h-80 object-cover mt-8"
                         />
                     </div>
 
                     <div>
-                        <span className="text-amber-500 font-semibold text-sm">EXPLORE WITH US</span>
+                        <span className="text-amber-500 font-semibold text-sm">KHÁM PHÁ CÙNG CHÚNG TÔI</span>
                         <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mt-2 mb-4">
-                            Investigate All Corners Of The World With Us
+                            Khám Phá Tất Cả Các Góc Thế Giới Cùng Chúng Tôi
                         </h2>
                         <p className="text-gray-600 mb-8">
-                            We provide you different packages and offers for travel and tourism. We assure you
-                            to give you the best service and enjoyment. Our travel experts are waiting for
-                            you.
+                            Chúng tôi cung cấp cho bạn nhiều gói dịch vụ và ưu đãi cho du lịch và tham quan. Chúng tôi cam kết
+                            mang đến cho bạn dịch vụ tốt nhất và sự hài lòng. Các chuyên gia du lịch của chúng tôi đang chờ đón
+                            bạn.
                         </p>
                         <button className="px-8 py-3 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-lg transition duration-300">
-                            Explore More
+                            Khám Phá Thêm
                         </button>
                     </div>
                 </div>
             </section>
 
-            {/* Features Section */}
+            {/* Phần Tính Năng */}
             <section className="bg-white py-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <span className="text-amber-500 font-semibold text-sm">WHY BOOK WITH US</span>
+                    <span className="text-amber-500 font-semibold text-sm">TẠI SAO ĐẶT TOUR CÙNG CHÚNG TÔI</span>
                     <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mt-2 mb-12">
-                        Best Features For You
+                        Những Tính Năng Tốt Nhất Cho Bạn
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <FeatureCard
                             icon="🗺️"
-                            title="Best Tour Guide"
-                            description="Our guide service ensures that you'll have a comprehensive and enjoyable tour experience"
+                            title="Hướng Dẫn Viên Tốt Nhất"
+                            description="Dịch vụ hướng dẫn của chúng tôi đảm bảo bạn sẽ có trải nghiệm tour toàn diện và thú vị"
                             color="bg-blue-100"
                         />
                         <FeatureCard
                             icon="✅"
-                            title="Reliable Tour"
-                            description="We provide reliable and quality tours to make your trip as comfortable as possible"
+                            title="Tour Đáng Tin Cậy"
+                            description="Chúng tôi cung cấp các tour chất lượng và đáng tin cậy để chuyến đi của bạn thoải mái nhất có thể"
                             color="bg-red-100"
                         />
                         <FeatureCard
                             icon="💰"
-                            title="Friendly Price"
-                            description="We offer the most competitive prices without compromising on the quality of services"
+                            title="Giá Cả Thân Thiện"
+                            description="Chúng tôi mang đến mức giá cạnh tranh nhất mà không đánh đổi chất lượng dịch vụ"
                             color="bg-yellow-100"
                         />
                     </div>
 
                     <button className="mt-12 px-8 py-3 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-lg transition duration-300">
-                        Explore More
+                        Khám Phá Thêm
                     </button>
                 </div>
             </section>
 
-            {/* Gallery Section */}
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-12">Gallery</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=300&h=300&fit=crop" className="rounded-2xl w-full h-72 object-cover" />
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop" className="rounded-2xl w-full h-72 object-cover" />
-                    <div className="md:col-span-1 lg:col-span-2 grid grid-cols-2 gap-4">
-                        <img src="https://images.unsplash.com/photo-1503803548695-659e10de5dba?w=300&h=300&fit=crop" className="rounded-2xl w-full h-72 object-cover" />
-                        <img src="https://images.unsplash.com/photo-1500595046891-45ba79b3ce35?w=300&h=300&fit=crop" className="rounded-2xl w-full h-72 object-cover" />
-                    </div>
-                </div>
-            </section>
+            <TopDestinations />
+            <PopularTours />
+            <FreshlyAdded />
+            <TravelDealsPage />
+            <TestimonialsCarousel />
+
+            {/* Nút Quay lại đầu trang */}
+            <div className="text-center py-8">
+                <button
+                    onClick={scrollToTop}
+                    className="px-6 py-2 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition duration-300"
+                >
+                    Quay Lại Đầu Trang
+                </button>
+            </div>
         </main>
     );
 };

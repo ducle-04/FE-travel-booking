@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { FaUser, FaUserTag, FaEnvelope, FaPhone, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 const RegisterPage: React.FC = () => {
@@ -13,6 +13,9 @@ const RegisterPage: React.FC = () => {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [serverError, setServerError] = useState<string>('');
+    const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -26,9 +29,10 @@ const RegisterPage: React.FC = () => {
                 return newErrors;
             });
         }
+        setServerError(''); // Clear server error on change
     };
 
-    const handleRegister = (e: React.MouseEvent) => {
+    const handleRegister = async (e: React.MouseEvent) => {
         e.preventDefault();
         const newErrors: Record<string, string> = {};
 
@@ -64,16 +68,47 @@ const RegisterPage: React.FC = () => {
             return;
         }
 
-        alert(`Đăng ký thành công!\nHọ tên: ${formData.fullName}\nEmail: ${formData.email}`);
-        setFormData({
-            fullName: '',
-            username: '',
-            email: '',
-            phone: '',
-            password: '',
-            confirmPassword: '',
-        });
-        setErrors({});
+        setLoading(true);
+        setServerError('');
+
+        try {
+            const response = await fetch('http://localhost:8080/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: formData.username,
+                    password: formData.password,
+                    email: formData.email,
+                    fullname: formData.fullName, // Map với fullname ở BE
+                    phoneNumber: formData.phone,
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.text(); // BE trả về String message
+                alert(data || 'Đăng ký thành công!');
+                setFormData({
+                    fullName: '',
+                    username: '',
+                    email: '',
+                    phone: '',
+                    password: '',
+                    confirmPassword: '',
+                });
+                setErrors({});
+                navigate('/login');
+            } else {
+                const errorText = await response.text();
+                setServerError(errorText || 'Đăng ký thất bại. Vui lòng thử lại.');
+            }
+        } catch (error) {
+            console.error('Error during registration:', error);
+            setServerError('Lỗi kết nối server. Vui lòng kiểm tra mạng hoặc thử lại sau.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -85,99 +120,123 @@ const RegisterPage: React.FC = () => {
                         <p className="text-gray-600">Tạo tài khoản mới trên WonderTrail</p>
                     </div>
 
+                    {serverError && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                            {serverError}
+                        </div>
+                    )}
+
                     <div className="space-y-4">
+                        {/* Họ và tên */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Họ và tên
                             </label>
-                            <input
-                                type="text"
-                                name="fullName"
-                                value={formData.fullName}
-                                onChange={handleChange}
-                                placeholder="Nhập họ và tên"
-                                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.fullName ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                    }`}
-                            />
+                            <div className="relative">
+                                <FaUser className="absolute left-3 top-3 text-gray-500" size={20} />
+                                <input
+                                    type="text"
+                                    name="fullName"
+                                    value={formData.fullName}
+                                    onChange={handleChange}
+                                    placeholder="Nhập họ và tên"
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.fullName ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                                        }`}
+                                />
+                            </div>
                             {errors.fullName && (
                                 <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
                             )}
                         </div>
 
+                        {/* Tên đăng nhập */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Tên đăng nhập
                             </label>
-                            <input
-                                type="text"
-                                name="username"
-                                value={formData.username}
-                                onChange={handleChange}
-                                placeholder="Nhập tên đăng nhập"
-                                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                    }`}
-                            />
+                            <div className="relative">
+                                <FaUserTag className="absolute left-3 top-3 text-gray-500" size={20} />
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                    placeholder="Nhập tên đăng nhập"
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                                        }`}
+                                />
+                            </div>
                             {errors.username && (
                                 <p className="text-red-500 text-sm mt-1">{errors.username}</p>
                             )}
                         </div>
 
+                        {/* Email */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Email
                             </label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                placeholder="Nhập email"
-                                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                    }`}
-                            />
+                            <div className="relative">
+                                <FaEnvelope className="absolute left-3 top-3 text-gray-500" size={20} />
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    placeholder="Nhập email"
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                                        }`}
+                                />
+                            </div>
                             {errors.email && (
                                 <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                             )}
                         </div>
 
+                        {/* Số điện thoại */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Số điện thoại
                             </label>
-                            <input
-                                type="tel"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                placeholder="Nhập số điện thoại"
-                                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                                    }`}
-                            />
+                            <div className="relative">
+                                <FaPhone className="absolute left-3 top-3 text-gray-500" size={20} />
+                                <input
+                                    type="tel"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    placeholder="Nhập số điện thoại"
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                                        }`}
+                                />
+                            </div>
                             {errors.phone && (
                                 <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
                             )}
                         </div>
 
+                        {/* Mật khẩu */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Mật khẩu
                             </label>
                             <div className="relative">
+                                <FaLock className="absolute left-3 top-3 text-gray-500" size={20} />
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Nhập mật khẩu"
-                                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
                                         }`}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-2 text-gray-500 hover:text-gray-700"
+                                    className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
                                 >
-                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
                                 </button>
                             </div>
                             {errors.password && (
@@ -185,13 +244,41 @@ const RegisterPage: React.FC = () => {
                             )}
                         </div>
 
-
+                        {/* Xác nhận mật khẩu */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Xác nhận mật khẩu
+                            </label>
+                            <div className="relative">
+                                <FaLock className="absolute left-3 top-3 text-gray-500" size={20} />
+                                <input
+                                    type={showConfirmPassword ? 'text' : 'password'}
+                                    name="confirmPassword"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    placeholder="Nhập lại mật khẩu"
+                                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                                        }`}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
+                                >
+                                    {showConfirmPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                                </button>
+                            </div>
+                            {errors.confirmPassword && (
+                                <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+                            )}
+                        </div>
 
                         <button
                             onClick={handleRegister}
-                            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition duration-300 mt-6"
+                            disabled={loading}
+                            className={`w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition duration-300 mt-6 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            Đăng ký
+                            {loading ? 'Đang xử lý...' : 'Đăng ký'}
                         </button>
                     </div>
 

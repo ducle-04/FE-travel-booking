@@ -52,7 +52,7 @@ const Footer: React.FC = () => {
                             <div className="bg-gradient-to-br from-cyan-500 to-teal-600 p-2 rounded-lg">
                                 <MapPin className="text-white" size={24} />
                             </div>
-                            <span className="font-extrabold text-2xl bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">TravelGo</span>
+                            <span className="font-extrabold text-2xl bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">WonderTrail</span>
                         </div>
                         <p className="italic text-gray-300 text-sm mb-4">Khám phá thế giới cùng chúng tôi</p>
                         <div className="space-y-2 text-gray-400 text-sm">
@@ -62,7 +62,7 @@ const Footer: React.FC = () => {
                             </div>
                             <div className="flex items-center">
                                 <Mail size={16} className="mr-3 text-cyan-400" />
-                                <span>info@travelgo.com</span>
+                                <span>info@wondertrail.com</span>
                             </div>
                             <div className="flex items-center">
                                 <MapPin size={16} className="mr-3 text-cyan-400" />
@@ -151,7 +151,7 @@ const Footer: React.FC = () => {
                 {/* Bottom Section */}
                 <div className="footer-animate-item grid grid-cols-1 md:grid-cols-2 gap-4 items-center opacity-0 translate-y-10 scale-95 transition-all duration-[600ms] ease-[cubic-bezier(0.4,2,0.6,1)] [&.footer-item-visible]:opacity-100 [&.footer-item-visible]:translate-y-0 [&.footer-item-visible]:scale-100">
                     <p className="text-center md:text-left text-sm text-gray-400">
-                        © {new Date().getFullYear()} TravelGo. All rights reserved.
+                        © {new Date().getFullYear()} WonderTrail. All rights reserved.
                     </p>
                     <div className="text-center md:text-right space-x-4 text-sm">
                         <a href="#" className="text-gray-400 hover:text-cyan-400 hover:underline transition">
