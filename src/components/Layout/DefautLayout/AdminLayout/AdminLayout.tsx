@@ -28,7 +28,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 <main
                     className="flex-grow overflow-y-auto p-6 transition-all duration-300"
                     style={{
-                        maxHeight: "calc(100vh - 64px - 56px)", // trừ Header (64px) + Footer (56px)
+                        maxHeight: "calc(100vh - 64px - 50px)",
                     }}
                 >
                     <div className=" mx-auto w-full">{children}</div>

@@ -27,7 +27,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, adminName }) => {
 
     return (
         <header className="w-full h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-6">
-            <button onClick={onToggleSidebar} className="text-gray-600 hover:text-gray-900">
+            <button onClick={onToggleSidebar} className="text-cyan-600 hover:text-cyan-900">
                 <FaBars size={20} />
             </button>
 
