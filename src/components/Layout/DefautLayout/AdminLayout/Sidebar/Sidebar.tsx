@@ -24,11 +24,10 @@ const menu = [
     { label: "Dashboard", icon: <MdDashboard className="w-5 h-5" />, path: "/admin" },
     { label: "Quản lý Tour", icon: <FaSuitcaseRolling className="w-5 h-5" />, path: "/admin/tours" },
     { label: "Quản lý Đặt Tour", icon: <FaShoppingCart className="w-5 h-5" />, path: "/admin/bookings" },
-    { label: "Quản lý Người Dùng", icon: <FaUsers className="w-5 h-5" />, path: "/admin/users" },
+    { label: "Quản lý Tài Khoản", icon: <FaUsers className="w-5 h-5" />, path: "/admin/users" },
     { label: "Quản lý Điểm Đến", icon: <FaGlobeAsia className="w-5 h-5" />, path: "/admin/destinations" },
     { label: "Quản lý Bài Viết", icon: <FaNewspaper className="w-5 h-5" />, path: "/admin/posts" },
     { label: "Quản lý Banner", icon: <FaFlag className="w-5 h-5" />, path: "/admin/banners" },
-    { label: "Quản lý Nhân Viên", icon: <FaUserShield className="w-5 h-5" />, path: "/admin/staff" },
     { label: "Phản Hồi / Đánh Giá", icon: <FaRegComments className="w-5 h-5" />, path: "/admin/reviews" },
     { label: "Cài Đặt Hệ Thống", icon: <FaCog className="w-5 h-5" />, path: "/admin/settings" },
     { label: "Tài Khoản Admin", icon: <FaUserShield className="w-5 h-5" />, path: "/admin/account" }
@@ -39,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
 
     return (
         <aside
-            className={`bg-white text-gray-800 h-full shadow-lg border-r border-gray-200 transition-all duration-300 ${isOpen ? "w-80" : "w-20"
+            className={`bg-white text-gray-800 h-full shadow-lg border-r border-gray-200 transition-all duration-300 ${isOpen ? "w-64" : "w-20"
                 }`}
         >
             {/* Logo */}

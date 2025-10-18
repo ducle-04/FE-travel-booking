@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaUser, FaUserTag, FaEnvelope, FaPhone, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { Eye, EyeOff, Facebook, Mail, Apple } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { registerUser } from '../../services/authService';
 import { validateRegisterForm } from '../../utils/formValidation';
@@ -11,12 +11,10 @@ const RegisterPage: React.FC = () => {
         email: '',
         phone: '',
         password: '',
-        confirmPassword: '',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showPassword, setShowPassword] = useState(false);
     const [success, setSuccess] = useState('');
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [serverError, setServerError] = useState<string>('');
     const [loading, setLoading] = useState(false);
 
@@ -63,7 +61,6 @@ const RegisterPage: React.FC = () => {
                 email: '',
                 phone: '',
                 password: '',
-                confirmPassword: '',
             });
             setErrors({});
             setTimeout(() => {
@@ -77,179 +74,220 @@ const RegisterPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-teal-50 to-blue-50 flex items-center justify-center px-4 py-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4 py-8">
             <div className="w-full max-w-md">
-                <div className="bg-white rounded-2xl shadow-lg p-8">
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-teal-700 mb-2">Đăng ký</h1>
-                        <p className="text-gray-600">Tạo tài khoản mới trên WonderTrail</p>
-                    </div>
-
-                    {success && (
-                        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 transition-opacity duration-500">
-                            {success}
-                        </div>
-                    )}
-
-                    {serverError && (
-                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                            {serverError}
-                        </div>
-                    )}
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Họ và tên
-                            </label>
-                            <div className="relative">
-                                <FaUser className="absolute left-3 top-3 text-gray-500" size={20} />
-                                <input
-                                    type="text"
-                                    name="fullName"
-                                    value={formData.fullName}
-                                    onChange={handleChange}
-                                    placeholder="Nhập họ và tên"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.fullName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                                />
-                            </div>
-                            {errors.fullName && (
-                                <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Tên đăng nhập
-                            </label>
-                            <div className="relative">
-                                <FaUserTag className="absolute left-3 top-3 text-gray-500" size={20} />
-                                <input
-                                    type="text"
-                                    name="username"
-                                    value={formData.username}
-                                    onChange={handleChange}
-                                    placeholder="Nhập tên đăng nhập"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                                />
-                            </div>
-                            {errors.username && (
-                                <p className="text-red-500 text-sm mt-1">{errors.username}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Email
-                            </label>
-                            <div className="relative">
-                                <FaEnvelope className="absolute left-3 top-3 text-gray-500" size={20} />
-                                <input
-                                    type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    placeholder="Nhập email"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                                />
-                            </div>
-                            {errors.email && (
-                                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Số điện thoại
-                            </label>
-                            <div className="relative">
-                                <FaPhone className="absolute left-3 top-3 text-gray-500" size={20} />
-                                <input
-                                    type="tel"
-                                    name="phone"
-                                    value={formData.phone}
-                                    onChange={handleChange}
-                                    placeholder="Nhập số điện thoại"
-                                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                                />
-                            </div>
-                            {errors.phone && (
-                                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Mật khẩu
-                            </label>
-                            <div className="relative">
-                                <FaLock className="absolute left-3 top-3 text-gray-500" size={20} />
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    placeholder="Nhập mật khẩu"
-                                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
-                                >
-                                    {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
-                                </button>
-                            </div>
-                            {errors.password && (
-                                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Xác nhận mật khẩu
-                            </label>
-                            <div className="relative">
-                                <FaLock className="absolute left-3 top-3 text-gray-500" size={20} />
-                                <input
-                                    type={showConfirmPassword ? 'text' : 'password'}
-                                    name="confirmPassword"
-                                    value={formData.confirmPassword}
-                                    onChange={handleChange}
-                                    placeholder="Nhập lại mật khẩu"
-                                    className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
-                                >
-                                    {showConfirmPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
-                                </button>
-                            </div>
-                            {errors.confirmPassword && (
-                                <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
-                            )}
-                        </div>
-
-                        <button
-                            onClick={handleRegister}
-                            disabled={loading}
-                            className={`w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition duration-300 mt-6 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            {loading ? 'Đang xử lý...' : 'Đăng ký'}
-                        </button>
-                    </div>
-
-                    <p className="text-center text-gray-600 mt-6">
+                {/* Header */}
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-semibold text-slate-900 mb-2">
+                        Tạo tài khoản
+                    </h1>
+                    <p className="text-slate-600">
                         Đã có tài khoản?{' '}
                         <button
                             onClick={() => navigate('/login')}
-                            className="text-teal-600 hover:text-teal-700 font-semibold"
+                            className="text-blue-600 hover:text-blue-700 font-medium"
                         >
                             Đăng nhập
                         </button>
                     </p>
+                </div>
+
+                {/* Messages */}
+                {success && (
+                    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4 transition-opacity duration-500">
+                        {success}
+                    </div>
+                )}
+                {serverError && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+                        {serverError}
+                    </div>
+                )}
+
+                {/* Form */}
+                <div className="space-y-5">
+                    {/* Full Name & Username Row */}
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Full Name */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Họ và tên
+                            </label>
+                            <input
+                                type="text"
+                                name="fullName"
+                                value={formData.fullName}
+                                onChange={handleChange}
+                                placeholder="Họ và tên"
+                                className={`w-full px-4 py-3 rounded-lg border transition-colors ${errors.fullName
+                                    ? 'border-red-400 focus:ring-red-200'
+                                    : 'border-slate-300 focus:ring-blue-200'
+                                    } bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2`}
+                            />
+                            {errors.fullName && (
+                                <p className="text-red-600 text-xs mt-1">{errors.fullName}</p>
+                            )}
+                        </div>
+
+                        {/* Username */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Tên đăng nhập
+                            </label>
+                            <input
+                                type="text"
+                                name="username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                placeholder="Tên đăng nhập"
+                                className={`w-full px-4 py-3 rounded-lg border transition-colors ${errors.username
+                                    ? 'border-red-400 focus:ring-red-200'
+                                    : 'border-slate-300 focus:ring-blue-200'
+                                    } bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2`}
+                            />
+                            {errors.username && (
+                                <p className="text-red-600 text-xs mt-1">{errors.username}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Email của bạn là gì?
+                        </label>
+                        <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="Nhập địa chỉ email"
+                            className={`w-full px-4 py-3 rounded-lg border transition-colors ${errors.email
+                                ? 'border-red-400 focus:ring-red-200'
+                                : 'border-slate-300 focus:ring-blue-200'
+                                } bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2`}
+                        />
+                        {errors.email && (
+                            <p className="text-red-600 text-xs mt-1">{errors.email}</p>
+                        )}
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Số điện thoại
+                        </label>
+                        <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            placeholder="Nhập số điện thoại"
+                            className={`w-full px-4 py-3 rounded-lg border transition-colors ${errors.phone
+                                ? 'border-red-400 focus:ring-red-200'
+                                : 'border-slate-300 focus:ring-blue-200'
+                                } bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2`}
+                        />
+                        {errors.phone && (
+                            <p className="text-red-600 text-xs mt-1">{errors.phone}</p>
+                        )}
+                    </div>
+
+                    {/* Password */}
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="block text-sm font-medium text-slate-700">
+                                Tạo mật khẩu
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="text-slate-600 hover:text-slate-900 focus:outline-none"
+                            >
+                                {showPassword ? (
+                                    <EyeOff size={18} />
+                                ) : (
+                                    <Eye size={18} />
+                                )}
+                            </button>
+                        </div>
+                        <input
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            placeholder="Nhập mật khẩu"
+                            className={`w-full px-4 py-3 rounded-lg border transition-colors ${errors.password
+                                ? 'border-red-400 focus:ring-red-200'
+                                : 'border-slate-300 focus:ring-blue-200'
+                                } bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2`}
+                        />
+                        <p className="text-slate-600 text-xs mt-2">
+                            Sử dụng 8 ký tự trở lên với hỗn hợp chữ cái, số & ký hiệu
+                        </p>
+                        {errors.password && (
+                            <p className="text-red-600 text-xs mt-1">{errors.password}</p>
+                        )}
+                    </div>
+
+                    {/* Terms */}
+                    <p className="text-sm text-slate-600">
+                        Bằng cách tạo tài khoản, bạn đồng ý với{' '}
+                        <button className="text-blue-600 hover:text-blue-700 font-medium">
+                            Điều khoản sử dụng
+                        </button>{' '}
+                        và{' '}
+                        <button className="text-blue-600 hover:text-blue-700 font-medium">
+                            Chính sách bảo mật
+                        </button>
+                    </p>
+
+                    {/* Submit Button */}
+                    <button
+                        onClick={handleRegister}
+                        disabled={loading}
+                        className={`w-full bg-slate-400 hover:bg-slate-500 text-white font-semibold py-3 rounded-full transition-colors cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                    >
+                        {loading ? 'Đang xử lý...' : 'Tạo tài khoản'}
+                    </button>
+                </div>
+
+                {/* Divider */}
+                <div className="relative my-8">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-300"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-gradient-to-br from-slate-50 to-slate-100 text-slate-600">
+                            Hoặc tiếp tục với
+                        </span>
+                    </div>
+                </div>
+
+                {/* Social Login */}
+                <div className="grid grid-cols-3 gap-3">
+                    <button
+                        type="button"
+                        className="flex items-center justify-center gap-2 border-2 border-slate-800 text-slate-800 font-semibold py-3 rounded-full hover:bg-slate-50 transition-colors"
+                    >
+                        <Facebook size={20} />
+                        <span className="hidden sm:inline">Facebook</span>
+                    </button>
+                    <button
+                        type="button"
+                        className="flex items-center justify-center gap-2 border-2 border-slate-800 text-slate-800 font-semibold py-3 rounded-full hover:bg-slate-50 transition-colors"
+                    >
+                        <Mail size={20} />
+                        <span className="hidden sm:inline">Google</span>
+                    </button>
+                    <button
+                        type="button"
+                        className="flex items-center justify-center gap-2 border-2 border-slate-800 text-slate-800 font-semibold py-3 rounded-full hover:bg-slate-50 transition-colors"
+                    >
+                        <Apple size={20} />
+                        <span className="hidden sm:inline">Apple</span>
+                    </button>
                 </div>
             </div>
         </div>

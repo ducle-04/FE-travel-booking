@@ -76,13 +76,24 @@ const Header: React.FC = () => {
     };
 
     const handleNavigate = (path: string) => {
-        navigate(path);
-        setIsOpen(false);
+        if (path === "/" && window.location.pathname === "/") {
+            window.scrollTo({ top: 0, behavior: 'auto' }); // Cuộn lên đầu tức thời
+            setTimeout(() => window.location.reload(), 100); // Trì hoãn reload để đảm bảo cuộn
+        } else {
+            navigate(path); // Điều hướng đến đường dẫn
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // Cuộn lên đầu
+        }
+        setIsOpen(false); // Đóng menu mobile
     };
 
     const handleLogoClick = () => {
-        navigate("/");
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (window.location.pathname === "/") {
+            window.scrollTo({ top: 0, behavior: 'auto' }); // Cuộn lên đầu tức thời
+            setTimeout(() => window.location.reload(), 100); // Trì hoãn reload để đảm bảo cuộn
+        } else {
+            navigate("/"); // Điều hướng đến trang chủ
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // Cuộn lên đầu
+        }
     };
 
     return (
