@@ -8,6 +8,7 @@ import EditUserModal from '../../components/Layout/DefautLayout/AdminLayout/User
 import DetailUserModal from '../../components/Layout/DefautLayout/AdminLayout/UserManagement/DetailUserModal';
 import Pagination from '../../components/Layout/DefautLayout/AdminLayout/UserManagement/Pagination';
 import { fetchUsers, fetchUserDetails, createUser, updateUser, deleteUser, updateUserStatus } from '../../services/userService';
+import { useTheme } from '../../context/ThemeContext'; // ✅ Thêm dòng này
 
 interface User {
     id: number;
@@ -26,6 +27,7 @@ interface JwtPayload {
 }
 
 const UserManagement: React.FC = () => {
+    const { theme } = useTheme(); // ✅ Lấy theme hiện tại
     const [users, setUsers] = useState<User[]>([]);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [rowsPerPage] = useState<number>(10);
@@ -72,8 +74,7 @@ const UserManagement: React.FC = () => {
                     .join('')
             );
             return JSON.parse(jsonPayload) as JwtPayload;
-        } catch (error) {
-            console.warn('Không decode được token:', error);
+        } catch {
             return { sub: '', roles: [] };
         }
     };
@@ -99,9 +100,6 @@ const UserManagement: React.FC = () => {
                 setUsers(fetchedUsers);
             } catch (err: any) {
                 setError(err.message);
-                if (err.message.includes('Phiên đăng nhập hết hạn') || err.message.includes('không có quyền')) {
-                    setTimeout(() => navigate('/login'), 1000);
-                }
             } finally {
                 setLoading(false);
             }
@@ -111,21 +109,12 @@ const UserManagement: React.FC = () => {
     }, [token, navigate, selectedRole]);
 
     const handleViewUserDetails = async (username: string) => {
-        if (!token) {
-            setError('Vui lòng đăng nhập để truy cập.');
-            setTimeout(() => navigate('/login'), 1000);
-            return;
-        }
+        if (!token) return;
         setLoading(true);
         try {
-            const userData = await fetchUserDetails(token as string, username);
+            const userData = await fetchUserDetails(token, username);
             setDetailUser(userData);
             setShowDetailUserModal(true);
-        } catch (err: any) {
-            setError(err.message);
-            if (err.message.includes('Phiên đăng nhập hết hạn') || err.message.includes('không có quyền')) {
-                setTimeout(() => navigate('/login'), 1000);
-            }
         } finally {
             setLoading(false);
         }
@@ -133,30 +122,12 @@ const UserManagement: React.FC = () => {
 
     const handleAddUser = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!token) {
-            setError('Vui lòng đăng nhập để truy cập.');
-            setTimeout(() => navigate('/login'), 1000);
-            return;
-        }
+        if (!token) return;
         setLoading(true);
         try {
-            const createdUser = await createUser(token as string, newUser);
+            const createdUser = await createUser(token, newUser);
             setUsers([...users, createdUser]);
             setShowAddUserModal(false);
-            setNewUser({
-                username: '',
-                password: '',
-                email: '',
-                fullname: '',
-                phoneNumber: '',
-                status: 'Hoạt động',
-                roles: ['USER'],
-            });
-        } catch (err: any) {
-            setError(err.message);
-            if (err.message.includes('Phiên đăng nhập hết hạn') || err.message.includes('không có quyền')) {
-                setTimeout(() => navigate('/login'), 1000);
-            }
         } finally {
             setLoading(false);
         }
@@ -164,26 +135,12 @@ const UserManagement: React.FC = () => {
 
     const handleEditUser = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!editUser || !token) {
-            setError('Vui lòng đăng nhập để truy cập.');
-            setTimeout(() => navigate('/login'), 1000);
-            return;
-        }
+        if (!editUser || !token) return;
         setLoading(true);
         try {
-            const updatedUser = await updateUser(token as string, editUser.username, editUser);
-            setUsers(
-                users.map((user) =>
-                    user.id === editUser.id ? updatedUser : user
-                )
-            );
+            const updatedUser = await updateUser(token, editUser.username, editUser);
+            setUsers(users.map((u) => (u.id === editUser.id ? updatedUser : u)));
             setShowEditUserModal(false);
-            setEditUser(null);
-        } catch (err: any) {
-            setError(err.message);
-            if (err.message.includes('Phiên đăng nhập hết hạn') || err.message.includes('không có quyền')) {
-                setTimeout(() => navigate('/login'), 1000);
-            }
         } finally {
             setLoading(false);
         }
@@ -191,79 +148,65 @@ const UserManagement: React.FC = () => {
 
     const handleDeleteUser = async (id: number, username: string) => {
         if (!window.confirm(`Bạn có chắc muốn xóa tài khoản ${username}?`)) return;
-        if (!token) {
-            setError('Vui lòng đăng nhập để truy cập.');
-            setTimeout(() => navigate('/login'), 1000);
-            return;
-        }
+        if (!token) return;
         setLoading(true);
         try {
-            await deleteUser(token as string, id);
-            setUsers(users.filter((user) => user.id !== id));
-        } catch (err: any) {
-            setError(err.message);
-            if (err.message.includes('Phiên đăng nhập hết hạn') || err.message.includes('không có quyền')) {
-                setTimeout(() => navigate('/login'), 1000);
-            }
+            await deleteUser(token, id);
+            setUsers(users.filter((u) => u.id !== id));
         } finally {
             setLoading(false);
         }
     };
 
     const handleChangeStatus = async (username: string, status: string) => {
-        if (!token) {
-            setError('Vui lòng đăng nhập để truy cập.');
-            setTimeout(() => navigate('/login'), 1000);
-            return;
-        }
+        if (!token) return;
         setLoading(true);
         try {
-            const updatedUser = await updateUserStatus(token as string, username, status);
-            setUsers(
-                users.map((user) =>
-                    user.username === username ? updatedUser : user
-                )
-            );
-        } catch (err: any) {
-            setError(err.message);
-            if (err.message.includes('Phiên đăng nhập hết hạn') || err.message.includes('không có quyền')) {
-                setTimeout(() => navigate('/login'), 1000);
-            }
+            const updatedUser = await updateUserStatus(token, username, status);
+            setUsers(users.map((u) => (u.username === username ? updatedUser : u)));
         } finally {
             setLoading(false);
         }
     };
 
-    const filteredUsers = users.filter((user) => {
+    const filteredUsers = users.filter((u) => {
         const matchesSearch =
-            user.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.username.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = selectedStatus ? user.status === selectedStatus : true;
+            u.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.username.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = selectedStatus ? u.status === selectedStatus : true;
         return matchesSearch && matchesStatus;
     });
 
     const totalPages = Math.ceil(filteredUsers.length / rowsPerPage);
     const paginatedUsers = filteredUsers.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-
     const isAdmin = token ? (decodeJwt(token).roles?.includes('ADMIN') ?? false) : false;
 
     return (
-        <div className="w-full bg-white">
-            <div className="border-b border-gray-200 p-4">
+        <div
+            className={`w-full min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-800'
+                }`}
+        >
+            <div
+                className={`border-b p-4 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+                    }`}
+            >
                 <div className="flex items-center justify-between mb-3">
-                    <h1 className="text-xl font-semibold text-gray-800">Quản lý tài khoản</h1>
+                    <h1 className="text-xl font-semibold">Quản lý tài khoản</h1>
                     {isAdmin && (
                         <div className="flex gap-2">
                             <button
-                                className="flex items-center gap-1 px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                                className={`flex items-center gap-1 px-3 py-1 text-sm rounded-lg ${theme === 'dark'
+                                        ? 'text-gray-200 bg-gray-800 hover:bg-gray-700'
+                                        : 'text-gray-700 hover:bg-gray-100'
+                                    }`}
                                 disabled={loading}
                             >
                                 <Download size={16} />
                                 Xuất dữ liệu
                             </button>
                             <button
-                                className="flex items-center gap-1 px-3 py-1 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-700"
+                                className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
                                 onClick={() => setShowAddUserModal(true)}
                                 disabled={loading}
                             >
@@ -282,8 +225,10 @@ const UserManagement: React.FC = () => {
                     setSelectedStatus={setSelectedStatus}
                 />
             </div>
-            {error && <div className="p-4 text-red-600 text-sm">{error}</div>}
-            {loading && <div className="p-4 text-gray-600 text-sm">Đang tải...</div>}
+
+            {error && <div className="p-4 text-red-500">{error}</div>}
+            {loading && <div className="p-4 text-gray-400">Đang tải...</div>}
+
             <UserTable
                 users={paginatedUsers}
                 isAdmin={isAdmin}
@@ -294,6 +239,7 @@ const UserManagement: React.FC = () => {
                 onChangeStatus={handleChangeStatus}
                 setShowEditUserModal={setShowEditUserModal}
             />
+
             <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -301,6 +247,7 @@ const UserManagement: React.FC = () => {
                 loading={loading}
                 filteredUsersLength={filteredUsers.length}
             />
+
             {showAddUserModal && isAdmin && (
                 <AddUserModal
                     newUser={newUser}

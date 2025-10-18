@@ -1,7 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class', // 👈 đặt ngay đầu cho rõ ràng
   content: [
-    "./src/**/*.{js,jsx,ts,tsx}", // Đảm bảo quét tất cả file trong src
+    "./src/**/*.{js,jsx,ts,tsx}", // Quét toàn bộ file trong src
   ],
   theme: {
     extend: {
@@ -12,4 +13,3 @@ module.exports = {
   },
   plugins: [],
 };
-
