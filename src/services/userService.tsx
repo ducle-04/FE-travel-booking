@@ -86,17 +86,7 @@ export const updateUserProfile = async (token: string, data: UpdateProfileData):
 
 export const fetchUsers = async (token: string, role?: string): Promise<User[]> => {
     try {
-        let url = 'http://localhost:8080/api/user/accounts/all';
-        if (role === 'USER') {
-            url = 'http://localhost:8080/api/user/all';
-        } else if (role === 'STAFF') {
-            url = 'http://localhost:8080/api/user/staff/all';
-        } else if (role === 'ADMIN') {
-            url = 'http://localhost:8080/api/user/admin/all';
-        } else if (role) {
-            throw new Error('Vai trò không hợp lệ.');
-        }
-
+        const url = 'http://localhost:8080/api/user/list' + (role ? `?role=${role}` : '');
         const response = await axios.get(url, {
             headers: {
                 Authorization: `Bearer ${token}`,

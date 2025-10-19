@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../../services/authService';
 import { validateLoginForm } from '../../utils/formValidation';
 
-interface JwtPayload {
-    sub: string;
-    roles?: string[];
+interface LoginResponse {
+    token: string;
+    username: string;
+    roles: string[];
 }
 
 const LoginPage: React.FC = () => {
@@ -20,26 +21,6 @@ const LoginPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
-
-    const decodeJwt = (token: string): JwtPayload => {
-        try {
-            const base64Url = token.split('.')[1];
-            if (!base64Url) {
-                return { sub: '', roles: [] };
-            }
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(
-                atob(base64)
-                    .split('')
-                    .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                    .join('')
-            );
-            return JSON.parse(jsonPayload) as JwtPayload;
-        } catch (error) {
-            console.warn('Không decode được token:', error);
-            return { sub: '', roles: [] };
-        }
-    };
 
     const handleChangeUsername = (e: React.ChangeEvent<HTMLInputElement>) => {
         setUsername(e.target.value);
@@ -71,21 +52,17 @@ const LoginPage: React.FC = () => {
         setSuccess('');
 
         try {
-            const data = await loginUser({ username, password });
+            const data: LoginResponse = await loginUser({ username, password });
 
-            const token = data.token;
-            let roles: string[] = data.roles || [];
-            if (!roles.length && token) {
-                try {
-                    const decoded: JwtPayload = decodeJwt(token);
-                    roles = decoded.roles || [];
-                } catch (decodeError) {
-                    console.warn('Không decode được roles từ token');
-                }
+            const { token, roles } = data;
+
+            if (remember) {
+                localStorage.setItem('jwtToken', token);
+                localStorage.setItem('roles', JSON.stringify(roles));
+            } else {
+                sessionStorage.setItem('jwtToken', token);
+                sessionStorage.setItem('roles', JSON.stringify(roles));
             }
-
-            if (remember) localStorage.setItem('jwtToken', token);
-            else sessionStorage.setItem('jwtToken', token);
 
             setSuccess('Đăng nhập thành công!');
             setUsername('');

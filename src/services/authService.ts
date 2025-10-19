@@ -15,7 +15,8 @@ interface LoginData {
 
 interface LoginResponse {
     token: string;
-    roles?: string[];
+    username: string;
+    roles: string[];
 }
 
 export const registerUser = async (data: RegisterData): Promise<string> => {

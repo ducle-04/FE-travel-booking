@@ -8,7 +8,7 @@ import EditUserModal from '../../components/Layout/DefautLayout/AdminLayout/User
 import DetailUserModal from '../../components/Layout/DefautLayout/AdminLayout/UserManagement/DetailUserModal';
 import Pagination from '../../components/Layout/DefautLayout/AdminLayout/UserManagement/Pagination';
 import { fetchUsers, fetchUserDetails, createUser, updateUser, deleteUser, updateUserStatus } from '../../services/userService';
-import { useTheme } from '../../context/ThemeContext'; // ✅ Thêm dòng này
+import { useTheme } from '../../context/ThemeContext';
 
 interface User {
     id: number;
@@ -21,13 +21,8 @@ interface User {
     createdAt: string;
 }
 
-interface JwtPayload {
-    sub: string;
-    roles?: string[];
-}
-
 const UserManagement: React.FC = () => {
-    const { theme } = useTheme(); // ✅ Lấy theme hiện tại
+    const { theme } = useTheme();
     const [users, setUsers] = useState<User[]>([]);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [rowsPerPage] = useState<number>(10);
@@ -61,23 +56,7 @@ const UserManagement: React.FC = () => {
     const navigate = useNavigate();
 
     const token = localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken');
-
-    const decodeJwt = (token: string): JwtPayload => {
-        try {
-            const base64Url = token.split('.')[1];
-            if (!base64Url) return { sub: '', roles: [] };
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(
-                atob(base64)
-                    .split('')
-                    .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                    .join('')
-            );
-            return JSON.parse(jsonPayload) as JwtPayload;
-        } catch {
-            return { sub: '', roles: [] };
-        }
-    };
+    const roles = JSON.parse(localStorage.getItem('roles') || sessionStorage.getItem('roles') || '[]') as string[];
 
     useEffect(() => {
         if (!token) {
@@ -86,8 +65,7 @@ const UserManagement: React.FC = () => {
             return;
         }
 
-        const decoded = decodeJwt(token);
-        if (!decoded.roles?.includes('ADMIN') && !decoded.roles?.includes('STAFF')) {
+        if (!roles.includes('ADMIN') && !roles.includes('STAFF')) {
             setError('Bạn không có quyền truy cập trang này.');
             setTimeout(() => navigate('/'), 1000);
             return;
@@ -180,7 +158,7 @@ const UserManagement: React.FC = () => {
 
     const totalPages = Math.ceil(filteredUsers.length / rowsPerPage);
     const paginatedUsers = filteredUsers.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-    const isAdmin = token ? (decodeJwt(token).roles?.includes('ADMIN') ?? false) : false;
+    const isAdmin = roles.includes('ADMIN');
 
     return (
         <div
@@ -197,8 +175,8 @@ const UserManagement: React.FC = () => {
                         <div className="flex gap-2">
                             <button
                                 className={`flex items-center gap-1 px-3 py-1 text-sm rounded-lg ${theme === 'dark'
-                                        ? 'text-gray-200 bg-gray-800 hover:bg-gray-700'
-                                        : 'text-gray-700 hover:bg-gray-100'
+                                    ? 'text-gray-200 bg-gray-800 hover:bg-gray-700'
+                                    : 'text-gray-700 hover:bg-gray-100'
                                     }`}
                                 disabled={loading}
                             >
