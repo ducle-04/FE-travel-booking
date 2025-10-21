@@ -109,7 +109,7 @@ const Header: React.FC = () => {
                     <div className="hidden md:flex space-x-8">
                         {[
                             { name: "Trang chủ", to: "/" },
-                            { name: "Điểm đến", to: "/destination" },
+                            { name: "Điểm đến", to: "/destinations" },
                             { name: "Tour", to: "/tours" },
                             { name: "Blog", to: "/blog" },
                             { name: "Về chúng tôi", to: "/about" },
@@ -185,7 +185,7 @@ const Header: React.FC = () => {
                     <div className="md:hidden bg-white shadow-md px-4 py-4 space-y-4">
                         {[
                             { name: "Trang chủ", to: "/" },
-                            { name: "Điểm đến", to: "/destination" },
+                            { name: "Điểm đến", to: "/destinations" },
                             { name: "Tour", to: "/tours" },
                             { name: "Blog", to: "/blog" },
                             { name: "Về chúng tôi", to: "/about" },
