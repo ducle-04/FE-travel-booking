@@ -53,8 +53,13 @@ const LoginPage: React.FC = () => {
 
         try {
             const data: LoginResponse = await loginUser({ username, password });
-
             const { token, roles } = data;
+
+            // Xóa dữ liệu cũ
+            localStorage.removeItem('jwtToken');
+            localStorage.removeItem('roles');
+            sessionStorage.removeItem('jwtToken');
+            sessionStorage.removeItem('roles');
 
             if (remember) {
                 localStorage.setItem('jwtToken', token);

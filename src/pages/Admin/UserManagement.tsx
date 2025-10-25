@@ -56,9 +56,14 @@ const UserManagement: React.FC = () => {
     const navigate = useNavigate();
 
     const token = localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken');
-    const roles = JSON.parse(localStorage.getItem('roles') || sessionStorage.getItem('roles') || '[]') as string[];
+    const roles = JSON.parse(
+        localStorage.getItem('jwtToken')
+            ? localStorage.getItem('roles') || '[]'
+            : sessionStorage.getItem('roles') || '[]'
+    ) as string[];
 
     useEffect(() => {
+        console.log('Roles:', roles); // Debug
         if (!token) {
             setError('Vui lòng đăng nhập để truy cập.');
             setTimeout(() => navigate('/login'), 1000);
@@ -124,8 +129,7 @@ const UserManagement: React.FC = () => {
         }
     };
 
-    const handleDeleteUser = async (id: number, username: string) => {
-        if (!window.confirm(`Bạn có chắc muốn xóa tài khoản ${username}?`)) return;
+    const handleDeleteUser = async (id: number) => {
         if (!token) return;
         setLoading(true);
         try {
@@ -210,6 +214,7 @@ const UserManagement: React.FC = () => {
             <UserTable
                 users={paginatedUsers}
                 isAdmin={isAdmin}
+                roles={roles}
                 loading={loading}
                 onViewDetails={handleViewUserDetails}
                 onEditUser={setEditUser}

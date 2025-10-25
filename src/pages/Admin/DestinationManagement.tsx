@@ -192,18 +192,19 @@ const DestinationManagement: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa điểm đến này?')) {
-            try {
-                await deleteDestination(id);
-                setDestinations(destinations.filter(dest => dest.id !== id));
-                if (paginatedDestinations.length === 1 && currentPage > 1) {
-                    setCurrentPage(currentPage - 1);
-                }
-            } catch (err: any) {
-                setError(err.message);
+        try {
+            await deleteDestination(id);
+            setDestinations(destinations.filter(dest => dest.id !== id));
+
+            // Nếu trang hiện tại chỉ còn 1 phần tử và không phải trang đầu, lùi về trang trước
+            if (paginatedDestinations.length === 1 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
             }
+        } catch (err: any) {
+            setError(err.message);
         }
     };
+
 
     const handleOpenImageModal = (imageUrl: string) => {
         setSelectedImage(imageUrl);

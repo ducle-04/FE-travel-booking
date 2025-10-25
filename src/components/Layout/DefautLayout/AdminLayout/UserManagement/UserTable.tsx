@@ -1,24 +1,19 @@
 import React from 'react';
 import { Eye, Edit2, Trash2 } from 'lucide-react';
-
-interface User {
-    id: number;
-    username: string;
-    email: string;
-    fullname: string;
-    phoneNumber: string;
-    status: 'Hoạt động' | 'Không hoạt động' | 'Bị cấm' | 'Đã xóa';
-    role: string;
-    createdAt: string;
-}
+import type { User } from '../../../../../services/userService';
+import { useTheme } from '../../../../../context/ThemeContext'; // Nhập useTheme
+import Swal from 'sweetalert2'; // Nhập SweetAlert2
+import { toast } from 'react-toastify'; // Nhập react-toastify
+import 'react-toastify/dist/ReactToastify.css'; // Nhập CSS cho react-toastify
 
 interface UserTableProps {
     users: User[];
     isAdmin: boolean;
+    roles: string[];
     loading: boolean;
     onViewDetails: (username: string) => void;
     onEditUser: (user: User) => void;
-    onDeleteUser: (id: number, username: string) => void;
+    onDeleteUser: (id: number, username: string) => Promise<void>; // Cập nhật để trả về Promise
     onChangeStatus: (username: string, status: string) => void;
     setShowEditUserModal: (show: boolean) => void;
 }
@@ -26,6 +21,7 @@ interface UserTableProps {
 const UserTable: React.FC<UserTableProps> = ({
     users,
     isAdmin,
+    roles,
     loading,
     onViewDetails,
     onEditUser,
@@ -33,6 +29,7 @@ const UserTable: React.FC<UserTableProps> = ({
     onChangeStatus,
     setShowEditUserModal,
 }) => {
+    const { theme } = useTheme(); // Lấy trạng thái theme
 
     const getStatusColor = (status: string): string => {
         const colors: { [key: string]: string } = {
@@ -46,18 +43,60 @@ const UserTable: React.FC<UserTableProps> = ({
 
     const getAvatarColor = (index: number): string => {
         const colors: string[] = [
-            'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-yellow-500', 'bg-red-500', 'bg-green-500'
+            'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-yellow-500', 'bg-red-500', 'bg-green-500',
         ];
         return colors[index % colors.length];
     };
 
     const getRoleLabel = (role: string): string => {
         const roleMap: { [key: string]: string } = {
-            'USER': 'Khách',
-            'STAFF': 'Nhân viên',
-            'ADMIN': 'Quản trị'
+            USER: 'Khách',
+            STAFF: 'Nhân viên',
+            ADMIN: 'Quản trị',
         };
         return roleMap[role] || role;
+    };
+
+    // Kiểm tra vai trò STAFF để vô hiệu hóa các hành động
+    const isStaffOnly = roles.includes('STAFF') && !roles.includes('ADMIN');
+
+    // Hàm xử lý xóa với xác nhận
+    const handleDelete = async (id: number, username: string) => {
+        const result = await Swal.fire({
+            title: 'Xác nhận xóa tài khoản',
+            text: `Bạn có chắc muốn xóa tài khoản "${username}"? Hành động này không thể hoàn tác.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận',
+            cancelButtonText: 'Hủy',
+            reverseButtons: true,
+            customClass: {
+                popup: theme === 'dark' ? 'swal2-dark' : '',
+                title: theme === 'dark' ? 'text-gray-200' : 'text-gray-800',
+                htmlContainer: theme === 'dark' ? 'text-gray-300' : 'text-gray-600',
+                confirmButton: theme === 'dark' ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-red-600 hover:bg-red-500 text-white',
+                cancelButton: theme === 'dark' ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-800',
+            },
+            background: theme === 'dark' ? '#1f2937' : '#ffffff',
+            color: theme === 'dark' ? '#e5e7eb' : '#374151',
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await onDeleteUser(id, username);
+                toast.success(`Xóa tài khoản "${username}" thành công!`, {
+                    position: 'top-right',
+                    autoClose: 3000,
+                    theme: theme === 'dark' ? 'dark' : 'light',
+                });
+            } catch (error: any) {
+                toast.error(error.message || 'Không thể xóa tài khoản. Vui lòng thử lại.', {
+                    position: 'top-right',
+                    autoClose: 5000,
+                    theme: theme === 'dark' ? 'dark' : 'light',
+                });
+            }
+        }
     };
 
     return (
@@ -116,7 +155,7 @@ const UserTable: React.FC<UserTableProps> = ({
                                         className={`px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-colors ${getStatusColor(user.status)} appearance-none pr-8 bg-right`}
                                         value={user.status}
                                         onChange={(e) => onChangeStatus(user.username, e.target.value)}
-                                        disabled={loading || !isAdmin || user.role === 'ADMIN'}
+                                        disabled={loading || isStaffOnly || !isAdmin || user.role === 'ADMIN'}
                                     >
                                         <option value="Hoạt động">Hoạt động</option>
                                         <option value="Không hoạt động">Không hoạt động</option>
@@ -144,7 +183,7 @@ const UserTable: React.FC<UserTableProps> = ({
                                         >
                                             <Eye size={16} strokeWidth={2} />
                                         </button>
-                                        {isAdmin && user.role !== 'USER' && user.role !== 'ADMIN' && (
+                                        {isAdmin && !isStaffOnly && user.role !== 'USER' && user.role !== 'ADMIN' && (
                                             <button
                                                 className="p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-md transition-colors duration-150"
                                                 onClick={() => {
@@ -157,10 +196,10 @@ const UserTable: React.FC<UserTableProps> = ({
                                                 <Edit2 size={16} strokeWidth={2} />
                                             </button>
                                         )}
-                                        {isAdmin && user.role !== 'ADMIN' && (
+                                        {isAdmin && !isStaffOnly && user.role !== 'ADMIN' && (
                                             <button
                                                 className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors duration-150"
-                                                onClick={() => onDeleteUser(user.id, user.username)}
+                                                onClick={() => handleDelete(user.id, user.username)} // Sử dụng handleDelete
                                                 disabled={loading}
                                                 title="Xóa"
                                             >

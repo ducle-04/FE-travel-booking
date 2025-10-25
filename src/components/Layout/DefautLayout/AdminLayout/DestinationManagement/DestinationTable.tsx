@@ -1,6 +1,9 @@
 import React from 'react';
 import { Edit2, Trash2, MapPin, ImageIcon } from 'lucide-react';
 import { useTheme } from '../../../../../context/ThemeContext';
+import Swal from 'sweetalert2'; // Nhập SweetAlert2
+import { toast } from 'react-toastify'; // Nhập react-toastify
+import 'react-toastify/dist/ReactToastify.css'; // Nhập CSS cho react-toastify
 
 interface Destination {
     id: string;
@@ -17,7 +20,7 @@ interface DestinationTableProps {
     currentPage: number;
     itemsPerPage: number;
     onOpenModal: (destination?: Destination) => void;
-    onDelete: (id: string) => void;
+    onDelete: (id: string) => Promise<void>; // Cập nhật để trả về Promise
     onOpenImageModal: (imageUrl: string) => void;
 }
 
@@ -33,10 +36,53 @@ const DestinationTable: React.FC<DestinationTableProps> = ({
 
     const getRegionColor = (region: string) => {
         switch (region) {
-            case 'Bắc': return theme === 'dark' ? 'bg-blue-900 text-blue-200 border border-blue-700' : 'bg-blue-100 text-blue-800 border border-blue-200';
-            case 'Trung': return theme === 'dark' ? 'bg-amber-900 text-amber-200 border border-amber-700' : 'bg-amber-100 text-amber-800 border border-amber-200';
-            case 'Nam': return theme === 'dark' ? 'bg-emerald-900 text-emerald-200 border border-emerald-700' : 'bg-emerald-100 text-emerald-800 border border-emerald-200';
-            default: return theme === 'dark' ? 'bg-gray-800 text-gray-200 border border-gray-700' : 'bg-gray-100 text-gray-800 border border-gray-200';
+            case 'Bắc':
+                return theme === 'dark' ? 'bg-blue-900 text-blue-200 border border-blue-700' : 'bg-blue-100 text-blue-800 border border-blue-200';
+            case 'Trung':
+                return theme === 'dark' ? 'bg-amber-900 text-amber-200 border border-amber-700' : 'bg-amber-100 text-amber-800 border border-amber-200';
+            case 'Nam':
+                return theme === 'dark' ? 'bg-emerald-900 text-emerald-200 border border-emerald-700' : 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+            default:
+                return theme === 'dark' ? 'bg-gray-800 text-gray-200 border border-gray-700' : 'bg-gray-100 text-gray-800 border border-gray-200';
+        }
+    };
+
+    // Hàm xử lý xóa với xác nhận
+    const handleDelete = async (id: string, name: string) => {
+        const result = await Swal.fire({
+            title: 'Xác nhận xóa điểm đến',
+            text: `Bạn có chắc muốn xóa điểm đến "${name}"? Hành động này không thể hoàn tác.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận',
+            cancelButtonText: 'Hủy',
+            reverseButtons: true,
+            customClass: {
+                popup: theme === 'dark' ? 'swal2-dark' : '',
+                title: theme === 'dark' ? 'text-gray-200' : 'text-gray-800',
+                htmlContainer: theme === 'dark' ? 'text-gray-300' : 'text-gray-600',
+                confirmButton: theme === 'dark' ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-red-600 hover:bg-red-500 text-white',
+                cancelButton: theme === 'dark' ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-800',
+            },
+            background: theme === 'dark' ? '#1f2937' : '#ffffff',
+            color: theme === 'dark' ? '#e5e7eb' : '#374151',
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await onDelete(id);
+                toast.success(`Xóa điểm đến "${name}" thành công!`, {
+                    position: 'top-right',
+                    autoClose: 3000,
+                    theme: theme === 'dark' ? 'dark' : 'light',
+                });
+            } catch (error: any) {
+                toast.error(error.message || 'Không thể xóa điểm đến. Vui lòng thử lại.', {
+                    position: 'top-right',
+                    autoClose: 5000,
+                    theme: theme === 'dark' ? 'dark' : 'light',
+                });
+            }
         }
     };
 
@@ -124,7 +170,7 @@ const DestinationTable: React.FC<DestinationTableProps> = ({
                                                 <Edit2 size={18} />
                                             </button>
                                             <button
-                                                onClick={() => onDelete(destination.id)}
+                                                onClick={() => handleDelete(destination.id, destination.name)} // Sử dụng handleDelete
                                                 className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-red-400 hover:bg-red-900' : 'text-red-600 hover:bg-red-50'}`}
                                                 title="Xóa"
                                             >
