@@ -8,6 +8,7 @@ import TravelWebsite from "./pages/User/TravelWebsite";
 import ProfilePage from "./pages/User/ProfilePage";
 import UserManagement from "./pages/Admin/UserManagement";
 import DestinationsPage from "./pages/User/Destinations";
+import Tour from "./pages/User/Tour";
 import DestinationManagement from "./pages/Admin/DestinationManagement";
 import TourManagement from "./pages/Admin/TourManagement";
 
@@ -18,6 +19,7 @@ const PublicPage = [
     { path: "/register", component: Register, layout: null },
     { path: "/profile", component: ProfilePage, layout: UserLayout },
     { path: "/destinations", component: DestinationsPage, layout: UserLayout },
+    { path: "/tours", component: Tour, layout: UserLayout },
     { path: "/admin", component: AdminDashboard, layout: AdminLayout },
     { path: "/admin/users", component: UserManagement, layout: AdminLayout },
     { path: "/admin/destinations", component: DestinationManagement, layout: AdminLayout },

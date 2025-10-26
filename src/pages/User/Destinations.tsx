@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, MapPin, Filter } from 'lucide-react';
 import { fetchDestinations, searchDestinations, filterDestinationsByRegion } from '../../services/destinationService';
+import DestinationCard from '../../components/Layout/DefautLayout/UserLayout/Destinations/DestinationCard';
 
 interface Destination {
     id: string;
@@ -19,141 +20,6 @@ const regions = [
     { id: 'Trung', name: 'Miền Trung', icon: '🏖️' },
     { id: 'Nam', name: 'Miền Nam', icon: '🌴' },
 ];
-
-const DestinationCard: React.FC<{ destination: Destination; index: number }> = ({ destination, index }) => {
-    const [isHovered, setIsHovered] = useState(false);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.6, delay: index * 0.1 }}
-            className="relative overflow-hidden rounded-2xl h-96 cursor-pointer group transition-shadow duration-500"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-        >
-            <motion.div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{
-                    backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.3) 100%), url("${destination.imageUrl || 'https://via.placeholder.com/800x600'}")`,
-                }}
-                animate={{
-                    scale: isHovered ? 1.1 : 1,
-                }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-            />
-
-            <motion.div
-                className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"
-                animate={{
-                    opacity: isHovered ? 0.95 : 1,
-                }}
-                transition={{ duration: 0.4 }}
-            />
-
-            <motion.div
-                className="absolute top-4 right-4"
-                initial={{ scale: 1 }}
-                animate={{
-                    scale: isHovered ? 1.1 : 1,
-                    y: isHovered ? -5 : 0,
-                }}
-                transition={{ duration: 0.3 }}
-            >
-                <span className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-sm">
-                    {destination.toursCount} tour
-                </span>
-            </motion.div>
-
-            <motion.div
-                className="absolute inset-0 flex flex-col items-center justify-center text-center p-6"
-                initial={{ opacity: 0 }}
-                animate={{
-                    opacity: isHovered ? 1 : 0,
-                }}
-                transition={{ duration: 0.4 }}
-            >
-                <motion.h3
-                    className="text-3xl font-bold text-white mb-4"
-                    initial={{ y: 20 }}
-                    animate={{
-                        y: isHovered ? 0 : 20,
-                    }}
-                    transition={{ duration: 0.4, delay: 0.1 }}
-                >
-                    {destination.name}
-                </motion.h3>
-                <motion.p
-                    className="text-gray-100 text-base mb-6 max-w-md leading-relaxed"
-                    initial={{ y: 20 }}
-                    animate={{
-                        y: isHovered ? 0 : 20,
-                    }}
-                    transition={{ duration: 0.4, delay: 0.15 }}
-                >
-                    {destination.description}
-                </motion.p>
-                <motion.button
-                    className="relative bg-white text-gray-900 px-6 py-3 rounded-lg font-semibold uppercase text-sm tracking-wide overflow-hidden group/btn"
-                    initial={{ y: 20 }}
-                    animate={{
-                        y: isHovered ? 0 : 20,
-                    }}
-                    transition={{ duration: 0.4, delay: 0.2 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                >
-                    <span className="relative z-10">Xem Tất Cả Tour</span>
-                    <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-cyan-600"
-                        initial={{ x: '-100%' }}
-                        whileHover={{ x: 0 }}
-                        transition={{ duration: 0.3 }}
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center text-white opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300 z-20">
-                        Xem Tất Cả Tour
-                    </span>
-                </motion.button>
-            </motion.div>
-
-            <motion.div
-                className="absolute inset-0 flex flex-col justify-end p-6"
-                initial={{ opacity: 1 }}
-                animate={{
-                    opacity: isHovered ? 0 : 1,
-                }}
-                transition={{ duration: 0.4 }}
-            >
-                <motion.div
-                    initial={{ y: 0 }}
-                    animate={{
-                        y: isHovered ? 20 : 0,
-                    }}
-                    transition={{ duration: 0.4 }}
-                >
-                    <h3 className="text-4xl font-bold text-white">{destination.name}</h3>
-                </motion.div>
-            </motion.div>
-
-            <motion.div
-                className="absolute inset-0 rounded-2xl"
-                initial={{ opacity: 0 }}
-                animate={{
-                    opacity: isHovered ? 1 : 0,
-                }}
-                transition={{ duration: 0.4 }}
-                style={{
-                    background: 'linear-gradient(45deg, rgba(6, 182, 212, 0.5), rgba(147, 51, 234, 0.5))',
-                    padding: '2px',
-                    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                    WebkitMaskComposite: 'xor',
-                    maskComposite: 'exclude',
-                }}
-            />
-        </motion.div>
-    );
-};
 
 export default function DestinationsPage() {
     const [searchQuery, setSearchQuery] = useState('');
