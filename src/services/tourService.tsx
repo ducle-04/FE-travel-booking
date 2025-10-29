@@ -1,3 +1,5 @@
+// src/services/tourService.ts
+
 import axios from 'axios';
 
 export interface Tour {
@@ -10,6 +12,7 @@ export interface Tour {
     description: string;
     averageRating: number;
     totalParticipants: number;
+    maxParticipants: number; // THÊM
     status: 'ACTIVE' | 'INACTIVE';
     createdAt: string;
     bookingsCount: number;
@@ -60,6 +63,7 @@ export const fetchTours = async (
         const formattedTours = response.data.tours.map((tour: any) => ({
             ...tour,
             status: tour.status.toUpperCase() as 'ACTIVE' | 'INACTIVE',
+            maxParticipants: tour.maxParticipants || 50, // Mặc định nếu backend chưa có
         }));
         return {
             tours: formattedTours,
@@ -71,7 +75,7 @@ export const fetchTours = async (
     }
 };
 
-// Hàm mới cho trang khách hàng, chỉ lấy tour ACTIVE
+// fetchTours2 (cho khách hàng)
 export const fetchTours2 = async (
     page: number,
     searchTerm?: string,
@@ -83,7 +87,7 @@ export const fetchTours2 = async (
         const params = new URLSearchParams({ page: page.toString() });
         if (searchTerm) params.append('name', searchTerm);
         if (destinationName && destinationName !== 'all') params.append('destinationName', destinationName);
-        params.append('status', 'ACTIVE'); // Cố định status là ACTIVE
+        params.append('status', 'ACTIVE');
         if (minPrice) params.append('minPrice', minPrice);
         if (maxPrice) params.append('maxPrice', maxPrice);
 
@@ -91,7 +95,8 @@ export const fetchTours2 = async (
         const response = await axios.get(`http://localhost:8080${endpoint}`, { params });
         const formattedTours = response.data.tours.map((tour: any) => ({
             ...tour,
-            status: tour.status.toUpperCase() as 'ACTIVE',
+            status: 'ACTIVE' as 'ACTIVE',
+            maxParticipants: tour.maxParticipants || 50,
         }));
         return {
             tours: formattedTours,
@@ -114,6 +119,7 @@ export const addTour = async (token: string, tourData: FormData): Promise<Tour> 
         return {
             ...response.data.tour,
             status: response.data.tour.status.toUpperCase() as 'ACTIVE' | 'INACTIVE',
+            maxParticipants: response.data.tour.maxParticipants,
         };
     } catch (error: any) {
         throw new Error(error.response?.data?.message || 'Không thể thêm tour');
@@ -131,6 +137,7 @@ export const updateTour = async (token: string, id: number, tourData: FormData):
         return {
             ...response.data.tour,
             status: response.data.tour.status.toUpperCase() as 'ACTIVE' | 'INACTIVE',
+            maxParticipants: response.data.tour.maxParticipants,
         };
     } catch (error: any) {
         throw new Error(error.response?.data?.message || 'Không thể cập nhật tour');
@@ -156,10 +163,11 @@ export const fetchToursByDestination = async (destinationId: string): Promise<To
         const formattedTours = response.data.tours.map((tour: any) => ({
             ...tour,
             status: tour.status.toUpperCase() as 'ACTIVE',
+            maxParticipants: tour.maxParticipants || 50,
         }));
         return {
             tours: formattedTours,
-            totalPages: 1, // API không hỗ trợ phân trang cho endpoint này, giả định 1 trang
+            totalPages: 1,
             totalItems: formattedTours.length,
         };
     } catch (error: any) {

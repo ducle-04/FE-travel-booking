@@ -1,8 +1,9 @@
 import React from 'react';
 import { MapPin, Calendar, DollarSign, Star, Eye, Edit2, Trash2 } from 'lucide-react';
-import Swal from 'sweetalert2'; // Nhập SweetAlert2
-import { toast } from 'react-toastify'; // Nhập react-toastify
-import 'react-toastify/dist/ReactToastify.css'; // Nhập CSS cho react-toastify
+import Swal from 'sweetalert2';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useNavigate } from 'react-router-dom'; // DÙNG BÌNH THƯỜNG
 
 interface Tour {
     id: number;
@@ -14,6 +15,7 @@ interface Tour {
     description: string;
     averageRating: number;
     totalParticipants: number;
+    maxParticipants: number;
     status: 'ACTIVE' | 'INACTIVE';
     createdAt: string;
     bookingsCount: number;
@@ -23,14 +25,21 @@ interface Tour {
 interface TourTableProps {
     tours: Tour[];
     theme: string;
-    onViewDetail: (tour: Tour) => void;
     onEdit: (tour: Tour) => void;
-    onDelete: (id: number) => Promise<void>; // Cập nhật để trả về Promise
+    onDelete: (id: number) => Promise<void>;
     formatCurrency: (amount: number) => string;
+    // BỎ onViewDetail vì dùng navigate
 }
 
-const TourTable: React.FC<TourTableProps> = ({ tours, theme, onViewDetail, onEdit, onDelete, formatCurrency }) => {
-    // Hàm xử lý xóa với xác nhận
+const TourTable: React.FC<TourTableProps> = ({
+    tours,
+    theme,
+    onEdit,
+    onDelete,
+    formatCurrency,
+}) => {
+    const navigate = useNavigate(); // HOÀN TOÀN HỢP LỆ NẾU ĐƯỢC WRAP TRONG ROUTER
+
     const handleDelete = async (id: number, name: string) => {
         const result = await Swal.fire({
             title: 'Xác nhận xóa tour',
@@ -120,6 +129,9 @@ const TourTable: React.FC<TourTableProps> = ({ tours, theme, onViewDetail, onEdi
                                         src={tour.imageUrl}
                                         alt={tour.name}
                                         className="w-16 h-16 rounded-lg object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.src = 'https://via.placeholder.com/64?text=IMG';
+                                        }}
                                     />
                                 </td>
                                 <td className="px-4 py-3">
@@ -157,14 +169,17 @@ const TourTable: React.FC<TourTableProps> = ({ tours, theme, onViewDetail, onEdi
                                     </div>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${tour.status === 'ACTIVE' ? (theme === 'dark' ? 'bg-green-900 text-green-400' : 'bg-green-100 text-green-700') : (theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-700')}`}>
+                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${tour.status === 'ACTIVE'
+                                        ? (theme === 'dark' ? 'bg-green-900 text-green-400' : 'bg-green-100 text-green-700')
+                                        : (theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-700')}`}>
                                         {tour.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm dừng'}
                                     </span>
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center justify-center gap-1">
+                                        {/* DÙNG useNavigate TRỰC TIẾP */}
                                         <button
-                                            onClick={() => onViewDetail(tour)}
+                                            onClick={() => navigate(`/admin/tours/${tour.id}`)}
                                             className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-blue-900 text-blue-400' : 'hover:bg-blue-50 text-blue-600'}`}
                                             title="Xem chi tiết"
                                         >
@@ -178,7 +193,7 @@ const TourTable: React.FC<TourTableProps> = ({ tours, theme, onViewDetail, onEdi
                                             <Edit2 size={16} />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(tour.id, tour.name)} // Sử dụng handleDelete
+                                            onClick={() => handleDelete(tour.id, tour.name)}
                                             className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-red-900 text-red-400' : 'hover:bg-red-50 text-red-600'}`}
                                             title="Xóa"
                                         >

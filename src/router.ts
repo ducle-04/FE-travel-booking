@@ -11,6 +11,8 @@ import DestinationsPage from "./pages/User/Destinations";
 import Tour from "./pages/User/Tour";
 import DestinationManagement from "./pages/Admin/DestinationManagement";
 import TourManagement from "./pages/Admin/TourManagement";
+import TourDetailPage from "./pages/Admin/TourDetailPage";
+import TourDetailUserPage from "./pages/User/TourDetailUserPage";
 
 const PublicPage = [
     { path: "/", component: Home, layout: UserLayout },
@@ -20,10 +22,12 @@ const PublicPage = [
     { path: "/profile", component: ProfilePage, layout: UserLayout },
     { path: "/destinations", component: DestinationsPage, layout: UserLayout },
     { path: "/tours", component: Tour, layout: UserLayout },
+    { path: "/tour/:id", component: TourDetailUserPage, layout: UserLayout },
     { path: "/admin", component: AdminDashboard, layout: AdminLayout },
     { path: "/admin/users", component: UserManagement, layout: AdminLayout },
     { path: "/admin/destinations", component: DestinationManagement, layout: AdminLayout },
     { path: "/admin/tours", component: TourManagement, layout: AdminLayout },
+    { path: "/admin/tours/:id", component: TourDetailPage, layout: AdminLayout },
 ];
 
 const PrivatePage: any[] = [];

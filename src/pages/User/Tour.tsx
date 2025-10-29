@@ -4,7 +4,7 @@ import { Search, Star, Grid, List, MapPin, Clock, Users, X } from 'lucide-react'
 import { debounce } from 'lodash';
 import { fetchTours2, fetchDestinations, fetchToursByDestination } from '../../services/tourService';
 import type { Tour, Destination, TourResponse } from '../../services/tourService';
-import { useSearchParams } from 'react-router-dom'; // Thêm useSearchParams
+import { useSearchParams, useNavigate } from 'react-router-dom'; // THÊM useNavigate
 
 const TourComponent: React.FC = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -19,9 +19,10 @@ const TourComponent: React.FC = () => {
     const [destinations, setDestinations] = useState<Destination[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [searchParams] = useSearchParams(); // Lấy query params
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate(); // THÊM: dùng để chuyển trang
 
-    const destinationId = searchParams.get('destinationId'); // Lấy destinationId từ query string
+    const destinationId = searchParams.get('destinationId');
 
     // Lấy danh sách điểm đến
     const loadDestinations = async () => {
@@ -40,10 +41,8 @@ const TourComponent: React.FC = () => {
         try {
             let response: TourResponse;
             if (destinationId) {
-                // Gọi API theo destinationId
                 response = await fetchToursByDestination(destinationId);
             } else {
-                // Gọi API lọc hoặc tìm kiếm thông thường
                 response = await fetchTours2(
                     page,
                     searchKeyword,
@@ -63,44 +62,38 @@ const TourComponent: React.FC = () => {
         }
     };
 
-    // Gọi API khi component mount, page hoặc destinationId thay đổi
     useEffect(() => {
         loadDestinations();
         loadTours();
-    }, [page, destinationId]); // Thêm destinationId vào dependencies
+    }, [page, destinationId]);
 
-    // Debounce tìm kiếm
     const debouncedLoadTours = debounce(() => {
-        if (!destinationId) { // Chỉ reset page nếu không có destinationId
+        if (!destinationId) {
             setPage(0);
         }
         loadTours();
     }, 500);
 
-    // Xử lý nhấn nút tìm kiếm
     const handleSearch = () => {
-        if (destinationId) return; // Không cho phép tìm kiếm khi đang xem tour theo điểm đến
+        if (destinationId) return;
         debouncedLoadTours();
     };
 
-    // Xử lý reset bộ lọc
     const handleReset = () => {
         setSearchKeyword('');
         setSearchLocation('all');
         setMinPrice('');
         setMaxPrice('');
         setPage(0);
-        loadTours(); // Gọi lại API ngay sau khi reset
+        loadTours();
     };
 
-    // Xử lý phím Enter cho tìm kiếm
     const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && !destinationId) {
             handleSearch();
         }
     };
 
-    // Xử lý giá trị giá
     const handleMinPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         if (Number(value) >= 0 || value === '') {
@@ -115,7 +108,6 @@ const TourComponent: React.FC = () => {
         }
     };
 
-    // Sắp xếp tour
     const sortedTours = [...tours].sort((a, b) => {
         if (sortBy === 'price') return a.price - b.price;
         if (sortBy === 'rating') return (b.averageRating || 0) - (a.averageRating || 0);
@@ -123,12 +115,16 @@ const TourComponent: React.FC = () => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-    // Tạo danh sách số trang hiển thị
     const getPageNumbers = () => {
         const maxPagesToShow = 5;
         const startPage = Math.max(0, page - Math.floor(maxPagesToShow / 2));
         const endPage = Math.min(totalPages, startPage + maxPagesToShow);
         return Array.from({ length: endPage - startPage }, (_, i) => startPage + i);
+    };
+
+    // CHUYỂN ĐẾN TRANG CHI TIẾT TOUR
+    const goToTourDetail = (tourId: number) => {
+        navigate(`/tour/${tourId}`);
     };
 
     return (
@@ -227,7 +223,6 @@ const TourComponent: React.FC = () => {
                                     Bộ Lọc
                                 </h2>
 
-                                {/* Location Filter */}
                                 <div className="mb-6">
                                     <label className="block text-sm font-semibold text-gray-700 mb-3">Địa điểm</label>
                                     <div className="relative">
@@ -247,7 +242,6 @@ const TourComponent: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Price Range Filter */}
                                 <div className="mb-6">
                                     <label className="block text-sm font-semibold text-gray-700 mb-3">Khoảng giá ($)</label>
                                     <div className="space-y-3">
@@ -347,7 +341,11 @@ const TourComponent: React.FC = () => {
                         {!loading && !error && (
                             <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'space-y-6'}`}>
                                 {sortedTours.map((tour) => (
-                                    <div key={tour.id} className={`bg-white border border-gray-200 overflow-hidden group cursor-pointer ${viewMode === 'grid' ? 'rounded-lg' : 'flex flex-row'}`}>
+                                    <div
+                                        key={tour.id}
+                                        className={`bg-white border border-gray-200 overflow-hidden group cursor-pointer transition-all hover:border-cyan-300 ${viewMode === 'grid' ? 'rounded-lg' : 'flex flex-row'}`}
+                                        onClick={() => goToTourDetail(tour.id)} // CHUYỂN ĐẾN CHI TIẾT
+                                    >
                                         {viewMode === 'list' ? (
                                             <>
                                                 <div className="relative overflow-hidden w-80 flex-shrink-0">
@@ -355,6 +353,7 @@ const TourComponent: React.FC = () => {
                                                         src={tour.imageUrl}
                                                         alt={tour.name}
                                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/400x300?text=Tour'; }}
                                                     />
                                                 </div>
 
@@ -396,7 +395,10 @@ const TourComponent: React.FC = () => {
                                                             <span className="text-3xl font-bold text-cyan-500">${tour.price.toLocaleString()}</span>
                                                         </div>
 
-                                                        <button className="bg-cyan-500 text-white px-6 py-3 font-medium hover:bg-cyan-600 transition">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); goToTourDetail(tour.id); }}
+                                                            className="bg-cyan-500 text-white px-6 py-3 font-medium hover:bg-cyan-600 transition"
+                                                        >
                                                             XEM CHI TIẾT
                                                         </button>
                                                     </div>
@@ -409,6 +411,7 @@ const TourComponent: React.FC = () => {
                                                         src={tour.imageUrl}
                                                         alt={tour.name}
                                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Tour'; }}
                                                     />
                                                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
                                                         <div className="flex items-center text-white text-sm gap-4">
@@ -452,7 +455,10 @@ const TourComponent: React.FC = () => {
                                                             </div>
                                                         </div>
 
-                                                        <button className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition font-medium">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); goToTourDetail(tour.id); }}
+                                                            className="bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition font-medium"
+                                                        >
                                                             Xem chi tiết
                                                         </button>
                                                     </div>
