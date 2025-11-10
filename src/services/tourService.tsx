@@ -55,14 +55,16 @@ const mapPageToResponse = (page: any): TourResponse => {
     };
 };
 
-// 1. Lấy danh sách điểm đến
+// 1. Lấy danh sách điểm đến (chỉ ACTIVE)
 export const fetchDestinations = async (): Promise<Destination[]> => {
     try {
         const response = await axios.get('http://localhost:8080/api/destinations');
-        return response.data.data.map((dest: any) => ({
-            id: dest.id,
-            name: dest.name,
-        }));
+        return response.data.data
+            .filter((dest: any) => dest.status === 'ACTIVE') // ← CHỈ LẤY ACTIVE
+            .map((dest: any) => ({
+                id: dest.id,
+                name: dest.name,
+            }));
     } catch (error: any) {
         throw new Error(error.response?.data?.message || 'Không thể tải danh sách điểm đến');
     }

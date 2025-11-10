@@ -4,7 +4,7 @@ import { Search, Star, Grid, List, MapPin, Clock, Users, X } from 'lucide-react'
 import { debounce } from 'lodash';
 import { fetchTours2, fetchDestinations, fetchToursByDestination } from '../../services/tourService';
 import type { Tour, Destination, TourResponse } from '../../services/tourService';
-import { useSearchParams, useNavigate } from 'react-router-dom'; // THÊM useNavigate
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const TourComponent: React.FC = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
