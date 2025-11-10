@@ -63,7 +63,6 @@ const UserManagement: React.FC = () => {
     ) as string[];
 
     useEffect(() => {
-        console.log('Roles:', roles); // Debug
         if (!token) {
             setError('Vui lòng đăng nhập để truy cập.');
             setTimeout(() => navigate('/login'), 1000);
@@ -116,12 +115,16 @@ const UserManagement: React.FC = () => {
         }
     };
 
-    const handleEditUser = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleEditUser = async (payload: {
+        fullname: string;
+        phoneNumber: string;
+        status: User['status'];
+        role: string;
+    }) => {
         if (!editUser || !token) return;
         setLoading(true);
         try {
-            const updatedUser = await updateUser(token, editUser.username, editUser);
+            const updatedUser = await updateUser(token, editUser.username, payload);
             setUsers(users.map((u) => (u.id === editUser.id ? updatedUser : u)));
             setShowEditUserModal(false);
         } finally {

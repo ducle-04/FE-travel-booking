@@ -20,7 +20,12 @@ interface User {
 interface EditUserModalProps {
     editUser: User;
     setEditUser: (user: User) => void;
-    onEditUser: (e: React.FormEvent) => void;
+    onEditUser: (payload: {
+        fullname: string;
+        phoneNumber: string;
+        status: User['status'];
+        role: string;
+    }) => Promise<void>;
     onClose: () => void;
     loading: boolean;
 }
@@ -37,11 +42,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validate (không validate email)
-        const errors = validateEditUserForm({
-            ...editUser,
-            email: '' // Bỏ email ra khỏi validate
-        });
+        const errors = validateEditUserForm(editUser);
         if (Object.keys(errors).length > 0) {
             const firstError = Object.values(errors)[0];
             toast.error(firstError, {
@@ -52,7 +53,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
             return;
         }
 
-        // Xác nhận bằng SweetAlert2
         const result = await Swal.fire({
             title: 'Xác nhận chỉnh sửa tài khoản',
             text: `Bạn có chắc muốn chỉnh sửa tài khoản "${editUser.username}"?`,
@@ -74,7 +74,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
 
         if (result.isConfirmed) {
             try {
-                // Tạo payload KHÔNG CÓ email
                 const payload = {
                     fullname: editUser.fullname,
                     phoneNumber: editUser.phoneNumber,
@@ -82,13 +81,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                     role: editUser.role,
                 };
 
-                // Gọi hàm onEditUser với payload đã lọc
-                const fakeEvent = {
-                    ...e,
-                    target: { ...e.target, form: { dataset: { payload: JSON.stringify(payload) } } }
-                } as any;
-
-                await onEditUser(fakeEvent);
+                await onEditUser(payload);
 
                 toast.success('Chỉnh sửa tài khoản thành công!', {
                     position: 'top-right',

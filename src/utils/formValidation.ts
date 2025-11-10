@@ -91,12 +91,12 @@ export const validateUpdateProfileForm = (formData: ProfileFormData, isResetting
         } else if (formData.fullName.length < 2 || formData.fullName.length > 100) {
             errors.fullName = 'Họ và tên phải từ 2 đến 100 ký tự';
         }
-        if (!formData.email) {
-            errors.email = 'Email không được để trống';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            errors.email = 'Email không hợp lệ';
-        } else if (formData.email.length > 100) {
-            errors.email = 'Email không được vượt quá 100 ký tự';
+        if (formData.email) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+                errors.email = 'Email không hợp lệ';
+            } else if (formData.email.length > 100) {
+                errors.email = 'Email không được vượt quá 100 ký tự';
+            }
         }
         if (formData.phone && !/^\+84[0-9]{9,12}$|^0[0-9]{9,12}$/.test(formData.phone)) {
             errors.phone = 'Số điện thoại không hợp lệ (9-12 chữ số, bắt đầu bằng +84 hoặc 0)';
