@@ -30,8 +30,8 @@ const UserFilters: React.FC<UserFiltersProps> = ({
                         type="text"
                         placeholder="Tìm kiếm"
                         className={`w-full pl-8 pr-3 py-1.5 border rounded-full text-sm focus:outline-none transition-colors ${theme === 'dark'
-                                ? 'bg-gray-800 border-gray-600 text-gray-200 placeholder-gray-400 focus:border-gray-500'
-                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-400'
+                            ? 'bg-gray-800 border-gray-600 text-gray-200 placeholder-gray-400 focus:border-gray-500'
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-400'
                             }`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -41,8 +41,8 @@ const UserFilters: React.FC<UserFiltersProps> = ({
             <div className="relative">
                 <select
                     className={`flex items-center gap-1 px-3 pr-6 py-1.5 border rounded-lg text-sm transition-colors appearance-none ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700'
-                            : 'bg-white border-gray-300 text-gray-700 hover:bg-cyan-50'
+                        ? 'bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-cyan-50'
                         }`}
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value)}
@@ -57,8 +57,8 @@ const UserFilters: React.FC<UserFiltersProps> = ({
             <div className="relative">
                 <select
                     className={`flex items-center gap-1 px-3 pr-6 py-1.5 border rounded-lg text-sm transition-colors appearance-none ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700'
-                            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        ? 'bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                         }`}
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}

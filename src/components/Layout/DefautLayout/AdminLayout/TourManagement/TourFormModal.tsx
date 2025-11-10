@@ -3,6 +3,7 @@ import { X, ImageIcon, ZoomIn } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import type { Destination } from '../../../../../services/tourService';
 
 interface FormData {
     name: string;
@@ -46,6 +47,7 @@ interface TourFormModalProps {
     onSubmit: () => Promise<void>;
     theme: string;
     openImageModal: (imageUrl: string) => void;
+    destinations: Destination[];
 }
 
 const TourFormModal: React.FC<TourFormModalProps> = ({
@@ -61,6 +63,7 @@ const TourFormModal: React.FC<TourFormModalProps> = ({
     onSubmit,
     theme,
     openImageModal,
+    destinations,
 }) => {
     const [isLoading, setIsLoading] = useState(false);
 
@@ -241,14 +244,24 @@ const TourFormModal: React.FC<TourFormModalProps> = ({
                             <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-slate-700'}`}>
                                 Điểm Đến <span className="text-red-500">*</span>
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 value={formData.destinationName}
                                 onChange={(e) => setFormData({ ...formData, destinationName: e.target.value })}
                                 disabled={isLoading}
                                 className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark' ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-white text-gray-800 border-slate-300'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                placeholder="Nhập điểm đến"
-                            />
+                            >
+                                <option value="">-- Chọn điểm đến --</option>
+                                {destinations.map((dest) => (
+                                    <option key={dest.id} value={dest.name}>
+                                        {dest.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {isLoading && (
+                                <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    Đang tải danh sách điểm đến...
+                                </p>
+                            )}
                         </div>
 
                         <div>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff, Facebook, Mail, Apple } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, Facebook, Mail, Github } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { loginUser } from '../../services/authService';
 import { validateLoginForm } from '../../utils/formValidation';
 
@@ -21,6 +21,48 @@ const LoginPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // XỬ LÝ GOOGLE CALLBACK TỪ URL
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const token = params.get('token');
+        const email = params.get('email');
+        const fullname = params.get('fullname');
+        const provider = params.get('provider');
+
+        if (token) {
+            // Xóa dữ liệu cũ
+            localStorage.removeItem('jwtToken');
+            localStorage.removeItem('roles');
+            sessionStorage.removeItem('jwtToken');
+            sessionStorage.removeItem('roles');
+
+            // Lưu token (luôn dùng localStorage cho OAuth)
+            localStorage.setItem('jwtToken', token);
+            localStorage.setItem('user', JSON.stringify({ email, fullname }));
+            localStorage.setItem('roles', JSON.stringify(['USER'])); // Mặc định USER
+
+            // Thông báo theo provider
+            if (provider === 'GOOGLE') {
+                setSuccess('Đăng nhập Google thành công!');
+            } else if (provider === 'FACEBOOK') {
+                setSuccess('Đăng nhập Facebook thành công!');
+            } else if (provider === 'GITHUB') {
+                setSuccess('Đăng nhập GitHub thành công!');
+            } else {
+                setSuccess('Đăng nhập thành công!');
+            }
+
+            // Xóa query params khỏi URL
+            window.history.replaceState({}, '', '/login');
+
+            setTimeout(() => {
+                navigate('/');
+            }, 800);
+        }
+    }, [location, navigate]);
+
 
     const handleChangeUsername = (e: React.ChangeEvent<HTMLInputElement>) => {
         setUsername(e.target.value);
@@ -55,7 +97,6 @@ const LoginPage: React.FC = () => {
             const data: LoginResponse = await loginUser({ username, password });
             const { token, roles } = data;
 
-            // Xóa dữ liệu cũ
             localStorage.removeItem('jwtToken');
             localStorage.removeItem('roles');
             sessionStorage.removeItem('jwtToken');
@@ -88,6 +129,22 @@ const LoginPage: React.FC = () => {
         }
     };
 
+    // GOOGLE LOGIN
+    const handleGoogleLogin = () => {
+        window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+    };
+
+    //FB
+    const handleFacebookLogin = () => {
+        window.location.href = 'http://localhost:8080/oauth2/authorization/facebook';
+    };
+
+    // GITHUB LOGIN
+    const handleGithubLogin = () => {
+        window.location.href = 'http://localhost:8080/oauth2/authorization/github';
+    };
+
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
@@ -109,7 +166,7 @@ const LoginPage: React.FC = () => {
 
                 {/* Messages */}
                 {success && (
-                    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4 transition-opacity duration-500">
+                    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4 animate-fade-in">
                         {success}
                     </div>
                 )}
@@ -152,11 +209,7 @@ const LoginPage: React.FC = () => {
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="text-slate-600 hover:text-slate-900 focus:outline-none"
                             >
-                                {showPassword ? (
-                                    <EyeOff size={18} />
-                                ) : (
-                                    <Eye size={18} />
-                                )}
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
                         <input
@@ -174,7 +227,7 @@ const LoginPage: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Remember & Forgot Password */}
+                    {/* Remember & Forgot */}
                     <div className="flex justify-between items-center text-sm">
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -190,11 +243,11 @@ const LoginPage: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Submit Button */}
+                    {/* Submit */}
                     <button
                         onClick={handleLogin}
                         disabled={loading}
-                        className={`w-full bg-slate-400 hover:bg-slate-500 text-white font-semibold py-3 rounded-full transition-colors cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''
+                        className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-full transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                     >
                         {loading ? 'Đang xử lý...' : 'Đăng nhập'}
@@ -215,26 +268,33 @@ const LoginPage: React.FC = () => {
 
                 {/* Social Login */}
                 <div className="grid grid-cols-3 gap-3">
+                    {/* === SỬA NÚT FACEBOOK === */}
                     <button
                         type="button"
-                        className="flex items-center justify-center gap-2 border-2 border-slate-800 text-slate-800 font-semibold py-3 rounded-full hover:bg-slate-50 transition-colors"
+                        onClick={handleFacebookLogin}
+                        className="flex items-center justify-center gap-2 border-2 border-blue-700 text-blue-700 font-semibold py-3 rounded-full hover:bg-blue-50 transition-colors"
                     >
                         <Facebook size={20} />
                         <span className="hidden sm:inline">Facebook</span>
                     </button>
+
+                    {/* GOOGLE LOGIN BUTTON */}
                     <button
                         type="button"
-                        className="flex items-center justify-center gap-2 border-2 border-slate-800 text-slate-800 font-semibold py-3 rounded-full hover:bg-slate-50 transition-colors"
+                        onClick={handleGoogleLogin}
+                        className="flex items-center justify-center gap-2 border-2 border-red-600 text-red-600 font-semibold py-3 rounded-full hover:bg-red-50 transition-colors"
                     >
                         <Mail size={20} />
                         <span className="hidden sm:inline">Google</span>
                     </button>
+
                     <button
                         type="button"
-                        className="flex items-center justify-center gap-2 border-2 border-slate-800 text-slate-800 font-semibold py-3 rounded-full hover:bg-slate-50 transition-colors"
+                        onClick={handleGithubLogin}
+                        className="flex items-center justify-center gap-2 border-2 border-gray-800 text-gray-800 font-semibold py-3 rounded-full hover:bg-gray-100 transition-colors"
                     >
-                        <Apple size={20} />
-                        <span className="hidden sm:inline">Apple</span>
+                        <Github size={20} />
+                        <span className="hidden sm:inline">GitHub</span>
                     </button>
                 </div>
             </div>

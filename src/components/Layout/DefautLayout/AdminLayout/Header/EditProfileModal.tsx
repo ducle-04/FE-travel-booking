@@ -29,6 +29,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ profile, onClose, o
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
+        if (name === 'email') return; // Không cho sửa email
         setFormData((prev) => ({ ...prev, [name]: value }));
         setError(null);
     };
@@ -40,11 +41,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ profile, onClose, o
 
         try {
             const token = localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken');
-            if (!token) {
-                throw new Error('Vui lòng đăng nhập lại.');
-            }
+            if (!token) throw new Error('Vui lòng đăng nhập lại.');
 
-            const updatedProfile = await updateUserProfile(token, formData);
+            const payload = {
+                username: formData.username,
+                fullname: formData.fullname,
+                phoneNumber: formData.phoneNumber,
+            };
+
+            const updatedProfile = await updateUserProfile(token, payload);
             onUpdate(updatedProfile);
             onClose();
         } catch (err: any) {
@@ -70,7 +75,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ profile, onClose, o
                     </button>
                 </div>
 
-                {/* Form Content */}
+                {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6">
                     {error && (
                         <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
@@ -84,7 +89,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ profile, onClose, o
                                 }`}>Tài khoản</label>
                             <input
                                 type="text"
-                                name="username"
                                 value={formData.username}
                                 className={`w-full px-4 py-2.5 border rounded-lg text-sm bg-gray-100 text-gray-600 cursor-not-allowed ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
                                     }`}
@@ -94,21 +98,19 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ profile, onClose, o
                                 }`}>Không thể thay đổi</p>
                         </div>
 
-                        {/* Email */}
+                        {/* Email (Disabled) */}
                         <div>
                             <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                                }`}>Email *</label>
+                                }`}>Email</label>
                             <input
                                 type="email"
-                                name="email"
                                 value={formData.email}
-                                onChange={handleChange}
-                                className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-900'
+                                className={`w-full px-4 py-2.5 border rounded-lg text-sm bg-gray-100 text-gray-600 cursor-not-allowed ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
                                     }`}
-                                placeholder="example@email.com"
-                                required
-                                disabled={loading}
+                                disabled
                             />
+                            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                                }`}>Không thể thay đổi</p>
                         </div>
 
                         {/* Fullname */}
@@ -144,17 +146,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ profile, onClose, o
                                 disabled={loading}
                             />
                         </div>
-
-                        {/* Forgot Password Placeholder */}
-                        <div>
-                            <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                                }`}>Quên mật khẩu</label>
-
-                        </div>
                     </div>
 
-                    {/* Footer Buttons */}
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    {/* Footer */}
+                    <div className={`flex justify-end gap-3 pt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+                        }`}>
                         <button
                             type="button"
                             className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 disabled:opacity-50 ${theme === 'dark' ? 'text-gray-200 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'

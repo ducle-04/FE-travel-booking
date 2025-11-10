@@ -37,8 +37,11 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Kiểm tra validation
-        const errors = validateEditUserForm(editUser);
+        // Validate (không validate email)
+        const errors = validateEditUserForm({
+            ...editUser,
+            email: '' // Bỏ email ra khỏi validate
+        });
         if (Object.keys(errors).length > 0) {
             const firstError = Object.values(errors)[0];
             toast.error(firstError, {
@@ -49,7 +52,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
             return;
         }
 
-        // Hiển thị SweetAlert2 để xác nhận
+        // Xác nhận bằng SweetAlert2
         const result = await Swal.fire({
             title: 'Xác nhận chỉnh sửa tài khoản',
             text: `Bạn có chắc muốn chỉnh sửa tài khoản "${editUser.username}"?`,
@@ -71,7 +74,22 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
 
         if (result.isConfirmed) {
             try {
-                await onEditUser(e);
+                // Tạo payload KHÔNG CÓ email
+                const payload = {
+                    fullname: editUser.fullname,
+                    phoneNumber: editUser.phoneNumber,
+                    status: editUser.status,
+                    role: editUser.role,
+                };
+
+                // Gọi hàm onEditUser với payload đã lọc
+                const fakeEvent = {
+                    ...e,
+                    target: { ...e.target, form: { dataset: { payload: JSON.stringify(payload) } } }
+                } as any;
+
+                await onEditUser(fakeEvent);
+
                 toast.success('Chỉnh sửa tài khoản thành công!', {
                     position: 'top-right',
                     autoClose: 3000,
@@ -97,8 +115,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                 {/* Header */}
                 <div
                     className={`sticky top-0 bg-gradient-to-r ${theme === 'dark'
-                            ? 'from-gray-800 to-gray-900'
-                            : 'from-slate-700 to-slate-800'
+                        ? 'from-gray-800 to-gray-900'
+                        : 'from-slate-700 to-slate-800'
                         } text-white px-6 py-4 flex items-center justify-between border-b-2 ${theme === 'dark' ? 'border-gray-700' : 'border-slate-900'
                         }`}
                 >
@@ -112,7 +130,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                     </button>
                 </div>
 
-                {/* Form Content */}
+                {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6">
                     <div className="grid grid-cols-2 gap-5 mb-6">
                         {/* Tài khoản (Disabled) */}
@@ -133,26 +151,22 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                             <p className="text-xs text-gray-500 mt-1">Không thể thay đổi</p>
                         </div>
 
-                        {/* Email */}
+                        {/* Email (Disabled) */}
                         <div>
                             <label
                                 className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                                     }`}
                             >
-                                Email *
+                                Email
                             </label>
                             <input
                                 type="email"
-                                className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all ${theme === 'dark'
-                                        ? 'bg-gray-800 border-gray-600 text-gray-200 placeholder-gray-400'
-                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                                className={`w-full px-4 py-2.5 border rounded-lg text-sm bg-gray-100 text-gray-600 cursor-not-allowed ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
                                     }`}
                                 value={editUser.email}
-                                onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
-                                placeholder="example@email.com"
-                                required
-                                disabled={loading}
+                                disabled
                             />
+                            <p className="text-xs text-gray-500 mt-1">Không thể thay đổi</p>
                         </div>
 
                         {/* Họ tên */}
@@ -161,13 +175,13 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                                 className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                                     }`}
                             >
-                                Họ tên *
+                                Họ tên <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
                                 className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all ${theme === 'dark'
-                                        ? 'bg-gray-800 border-gray-600 text-gray-200 placeholder-gray-400'
-                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                                    ? 'bg-gray-800 border-gray-600 text-gray-200 placeholder-gray-400'
+                                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                                     }`}
                                 value={editUser.fullname}
                                 onChange={(e) => setEditUser({ ...editUser, fullname: e.target.value })}
@@ -183,13 +197,13 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                                 className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                                     }`}
                             >
-                                Số điện thoại *
+                                Số điện thoại <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
                                 className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all ${theme === 'dark'
-                                        ? 'bg-gray-800 border-gray-600 text-gray-200 placeholder-gray-400'
-                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                                    ? 'bg-gray-800 border-gray-600 text-gray-200 placeholder-gray-400'
+                                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                                     }`}
                                 value={editUser.phoneNumber}
                                 onChange={(e) => setEditUser({ ...editUser, phoneNumber: e.target.value })}
@@ -205,12 +219,12 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                                 className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                                     }`}
                             >
-                                Vai trò *
+                                Vai trò <span className="text-red-500">*</span>
                             </label>
                             <select
                                 className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all appearance-none cursor-pointer ${theme === 'dark'
-                                        ? 'bg-gray-800 border-gray-600 text-gray-200'
-                                        : 'bg-white border-gray-300 text-gray-900'
+                                    ? 'bg-gray-800 border-gray-600 text-gray-200'
+                                    : 'bg-white border-gray-300 text-gray-900'
                                     }`}
                                 value={editUser.role}
                                 onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
@@ -228,12 +242,12 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                                 className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                                     }`}
                             >
-                                Trạng thái *
+                                Trạng thái <span className="text-red-500">*</span>
                             </label>
                             <select
                                 className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all appearance-none cursor-pointer ${theme === 'dark'
-                                        ? 'bg-gray-800 border-gray-600 text-gray-200'
-                                        : 'bg-white border-gray-300 text-gray-900'
+                                    ? 'bg-gray-800 border-gray-600 text-gray-200'
+                                    : 'bg-white border-gray-300 text-gray-900'
                                     }`}
                                 value={editUser.status}
                                 onChange={(e) =>
@@ -260,8 +274,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                         <button
                             type="button"
                             className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 disabled:opacity-50 ${theme === 'dark'
-                                    ? 'text-gray-200 bg-gray-700 hover:bg-gray-600'
-                                    : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                                ? 'text-gray-200 bg-gray-700 hover:bg-gray-600'
+                                : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
                                 }`}
                             onClick={onClose}
                             disabled={loading}
@@ -271,8 +285,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                         <button
                             type="submit"
                             className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg ${theme === 'dark'
-                                    ? 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white'
-                                    : 'bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-white'
+                                ? 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white'
+                                : 'bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-white'
                                 }`}
                             disabled={loading}
                         >

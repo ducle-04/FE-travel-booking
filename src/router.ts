@@ -18,6 +18,7 @@ const PublicPage = [
     { path: "/", component: Home, layout: UserLayout },
     { path: "/about", component: TravelWebsite, layout: UserLayout },
     { path: "/login", component: Login, layout: null },
+    { path: "/oauth2/callback", component: Login, layout: null },
     { path: "/register", component: Register, layout: null },
     { path: "/profile", component: ProfilePage, layout: UserLayout },
     { path: "/destinations", component: DestinationsPage, layout: UserLayout },

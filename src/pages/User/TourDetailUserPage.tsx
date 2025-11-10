@@ -123,7 +123,7 @@ const TourDetailUserPage: React.FC = () => {
         setLoading(true);
         try {
             const tourRes = await axios.get(`http://localhost:8080/api/tours/${id}`);
-            const tourData = tourRes.data.tour;
+            const tourData = tourRes.data.data;
             setTour(tourData);
             setDetail(tourData.tourDetail || {
                 transportation: '', itinerary: '', departurePoint: '', departureTime: '',

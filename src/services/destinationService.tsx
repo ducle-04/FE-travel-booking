@@ -6,7 +6,7 @@ const TOKEN = localStorage.getItem('token');
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
     headers: {
-        'Authorization': `Bearer ${TOKEN}`,
+        Authorization: `Bearer ${TOKEN}`,
     },
 });
 
@@ -20,7 +20,7 @@ interface Destination {
     status: 'ACTIVE' | 'INACTIVE' | 'DELETED';
 }
 
-// Hàm ánh xạ region từ BE sang FE
+// Map region: BE → FE
 const mapRegionFromBE = (region: string): 'Bắc' | 'Trung' | 'Nam' => {
     switch (region) {
         case 'BAC': return 'Bắc';
@@ -30,7 +30,7 @@ const mapRegionFromBE = (region: string): 'Bắc' | 'Trung' | 'Nam' => {
     }
 };
 
-// Hàm ánh xạ region từ FE sang BE
+// Map region: FE → BE
 const mapRegionToBE = (region: string): 'BAC' | 'TRUNG' | 'NAM' => {
     switch (region) {
         case 'Bắc': return 'BAC';
@@ -40,104 +40,117 @@ const mapRegionToBE = (region: string): 'BAC' | 'TRUNG' | 'NAM' => {
     }
 };
 
-// Lấy danh sách điểm đến
+// 1. Lấy tất cả điểm đến
 export const fetchDestinations = async (): Promise<Destination[]> => {
     try {
-        const response = await axiosInstance.get('');
-        return response.data.destinations.map((dest: any) => ({
-            ...dest,
-            region: mapRegionFromBE(dest.region),
-            imageUrl: dest.imageUrl || '',
-            toursCount: dest.toursCount || 0,
+        const { data } = await axiosInstance.get('');
+        return data.data.map((d: any) => ({
+            ...d,
+            region: mapRegionFromBE(d.region),
+            imageUrl: d.imageUrl || '',
+            toursCount: d.toursCount || 0,
         }));
     } catch (error) {
         throw new Error('Lỗi khi lấy danh sách điểm đến');
     }
 };
 
-// Tìm kiếm điểm đến theo tên
-export const searchDestinations = async (term: string): Promise<Destination[]> => {
+// 2. Lấy điểm đến theo ID
+export const fetchDestinationById = async (id: string): Promise<Destination> => {
     try {
-        const response = await axiosInstance.get(`/search?name=${encodeURIComponent(term)}`);
-        return response.data.destinations.map((dest: any) => ({
+        const { data } = await axiosInstance.get(`/${id}`);
+        const dest = data.data;
+        return {
             ...dest,
             region: mapRegionFromBE(dest.region),
             imageUrl: dest.imageUrl || '',
             toursCount: dest.toursCount || 0,
+        };
+    } catch (error) {
+        throw new Error('Lỗi khi lấy thông tin điểm đến');
+    }
+};
+
+// 3. Tìm kiếm điểm đến theo tên
+export const searchDestinations = async (name: string): Promise<Destination[]> => {
+    try {
+        const { data } = await axiosInstance.get('/search', { params: { name } });
+        return data.data.map((d: any) => ({
+            ...d,
+            region: mapRegionFromBE(d.region),
+            imageUrl: d.imageUrl || '',
+            toursCount: d.toursCount || 0,
         }));
     } catch (error) {
         throw new Error('Lỗi khi tìm kiếm điểm đến');
     }
 };
 
-// Lọc điểm đến theo khu vực
+// 4. Lọc điểm đến theo vùng
 export const filterDestinationsByRegion = async (region: string): Promise<Destination[]> => {
     try {
-        const response = await axiosInstance.get(`/region?region=${mapRegionToBE(region)}`);
-        return response.data.destinations.map((dest: any) => ({
-            ...dest,
-            region: mapRegionFromBE(dest.region),
-            imageUrl: dest.imageUrl || '',
-            toursCount: dest.toursCount || 0,
+        const { data } = await axiosInstance.get('/region', {
+            params: { region: mapRegionToBE(region) },
+        });
+        return data.data.map((d: any) => ({
+            ...d,
+            region: mapRegionFromBE(d.region),
+            imageUrl: d.imageUrl || '',
+            toursCount: d.toursCount || 0,
         }));
     } catch (error) {
-        throw new Error('Lỗi khi lọc điểm đến theo khu vực');
+        throw new Error('Lỗi khi lọc điểm đến theo vùng');
     }
 };
 
-// Tạo mới hoặc cập nhật điểm đến
+// 5. Tạo / Cập nhật điểm đến
 export const saveDestination = async (
-    destination: Omit<Destination, 'id'> & { imageFile?: File; imagePreview?: string },
+    destination: Omit<Destination, 'id' | 'toursCount'> & {
+        imageFile?: File;
+        imagePreview?: string;
+    },
     id?: string
 ): Promise<Destination> => {
-    const formDataToSend = new FormData();
-    const destinationDTO = {
+    const formData = new FormData();
+    const dto = {
         name: destination.name,
-        region: mapRegionToBE(destination.region),
         description: destination.description,
         imageUrl: destination.imageUrl || '',
         status: destination.status || 'ACTIVE',
-        toursCount: destination.toursCount || 0,
+        region: mapRegionToBE(destination.region),
     };
-    formDataToSend.append('destination', JSON.stringify(destinationDTO));
+
+    formData.append('destination', JSON.stringify(dto));
     if (destination.imageFile) {
-        formDataToSend.append('image', destination.imageFile);
+        formData.append('image', destination.imageFile);
     }
 
     try {
-        if (id) {
-            // Cập nhật điểm đến
-            const response = await axiosInstance.put(`/${id}`, formDataToSend, {
+        const { data } = id
+            ? await axiosInstance.put(`/${id}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            : await axiosInstance.post('', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            return {
-                ...response.data.destination,
-                region: mapRegionFromBE(response.data.destination.region),
-                imageUrl: response.data.destination.imageUrl || '',
-                toursCount: response.data.destination.toursCount || 0,
-            };
-        } else {
-            // Tạo mới điểm đến
-            const response = await axiosInstance.post('', formDataToSend, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
-            return {
-                ...response.data.destination,
-                region: mapRegionFromBE(response.data.destination.region),
-                imageUrl: response.data.destination.imageUrl || '',
-                toursCount: response.data.destination.toursCount || 0,
-            };
-        }
+
+        const saved = data.data;
+        return {
+            ...saved,
+            region: mapRegionFromBE(saved.region),
+            imageUrl: saved.imageUrl || '',
+            toursCount: saved.toursCount || 0,
+        };
     } catch (error: any) {
-        throw new Error(error.response?.data || 'Lỗi khi lưu điểm đến');
+        throw new Error(error.response?.data?.message || 'Lỗi khi lưu điểm đến');
     }
 };
 
-// Xóa điểm đến
+// 6. Xóa điểm đến
 export const deleteDestination = async (id: string): Promise<void> => {
     try {
         await axiosInstance.delete(`/${id}`);
     } catch (error: any) {
-        throw new Error(error.response?.data || 'Lỗi khi xóa điểm đến');
+        throw new Error(error.response?.data?.message || 'Lỗi khi xóa điểm đến');
     }
 };

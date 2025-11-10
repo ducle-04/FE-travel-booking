@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Menu, X, User, LogOut, BookmarkCheck, Settings } from "lucide-react";
+import { Menu, X, LogOut, BookmarkCheck, Settings } from "lucide-react";
 import logoImg from "../../../../../assets/images/logo/logo.png";
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +9,7 @@ const Header: React.FC = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [username, setUsername] = useState<string>('');
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null); // THÊM
     const [openUserMenu, setOpenUserMenu] = useState(false);
 
     const API_BASE_URL = 'http://localhost:8080';
@@ -29,6 +30,7 @@ const Header: React.FC = () => {
                     if (response.ok) {
                         const data = await response.json();
                         setUsername(data.username || '');
+                        setAvatarUrl(data.avatarUrl || null); // LẤY AVATAR
                         setIsLoggedIn(true);
                     } else {
                         handleLogout();
@@ -39,6 +41,7 @@ const Header: React.FC = () => {
                 }
             } else {
                 setUsername('');
+                setAvatarUrl(null);
                 setIsLoggedIn(false);
             }
         };
@@ -48,7 +51,6 @@ const Header: React.FC = () => {
             setIsScrolled(window.scrollY > 50);
         };
         window.addEventListener("scroll", handleScroll);
-
         window.addEventListener("storage", checkLoginStatus);
 
         return () => {
@@ -66,6 +68,7 @@ const Header: React.FC = () => {
         sessionStorage.removeItem("jwtToken");
         setIsLoggedIn(false);
         setUsername('');
+        setAvatarUrl(null);
         setOpenUserMenu(false);
         navigate("/");
     };
@@ -77,23 +80,28 @@ const Header: React.FC = () => {
 
     const handleNavigate = (path: string) => {
         if (path === "/" && window.location.pathname === "/") {
-            window.scrollTo({ top: 0, behavior: 'auto' }); // Cuộn lên đầu tức thời
-            setTimeout(() => window.location.reload(), 100); // Trì hoãn reload để đảm bảo cuộn
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            setTimeout(() => window.location.reload(), 100);
         } else {
-            navigate(path); // Điều hướng đến đường dẫn
-            window.scrollTo({ top: 0, behavior: 'smooth' }); // Cuộn lên đầu
+            navigate(path);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        setIsOpen(false); // Đóng menu mobile
+        setIsOpen(false);
     };
 
     const handleLogoClick = () => {
         if (window.location.pathname === "/") {
-            window.scrollTo({ top: 0, behavior: 'auto' }); // Cuộn lên đầu tức thời
-            setTimeout(() => window.location.reload(), 100); // Trì hoãn reload để đảm bảo cuộn
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            setTimeout(() => window.location.reload(), 100);
         } else {
-            navigate("/"); // Điều hướng đến trang chủ
-            window.scrollTo({ top: 0, behavior: 'smooth' }); // Cuộn lên đầu
+            navigate("/");
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+    };
+
+    // HÀM TẠO AVATAR FALLBACK
+    const getAvatarFallback = () => {
+        return username?.[0]?.toUpperCase() || 'U';
     };
 
     return (
@@ -128,7 +136,7 @@ const Header: React.FC = () => {
                     {/* Right side */}
                     <div className="hidden md:flex items-center space-x-6">
                         {/* Giỏ tour */}
-                        <button onClick={() => handleNavigate("/my-tours")} className={`${isScrolled ? "text-gray-700" : "text-white"}`}>
+                        <button onClick={() => handleNavigate("/my-tours")} className={`${isScrolled ? "text-gray-700" : "text-cyan-400"}`}>
                             <BookmarkCheck size={24} className="hover:scale-110 transition" />
                         </button>
 
@@ -147,26 +155,45 @@ const Header: React.FC = () => {
                                 <button
                                     onClick={() => setOpenUserMenu(!openUserMenu)}
                                     className={`flex items-center gap-2 px-3 py-1 border border-gray-300 rounded-full shadow-sm transition 
-                ${isScrolled ? "bg-white text-gray-800 hover:bg-gray-100" : "bg-white text-cyan-800 hover:bg-cyan-100"}`}
+                                        ${isScrolled ? "bg-white text-gray-800 hover:bg-gray-100" : "bg-white text-cyan-800 hover:bg-cyan-100"}`}
                                 >
-                                    <User size={26} className="text-current" />
+                                    {/* AVATAR THAY THẾ ICON */}
+                                    {avatarUrl ? (
+                                        <img
+                                            src={avatarUrl}
+                                            alt="Avatar"
+                                            className="w-8 h-8 rounded-full object-cover border border-cyan-500"
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                            {getAvatarFallback()}
+                                        </div>
+                                    )}
                                     <span className="font-medium">{username || 'User'}</span>
                                 </button>
 
                                 {openUserMenu && (
-                                    <div className="absolute right-0 mt-2 bg-white shadow-lg rounded-lg w-48 py-2 border border-gray-200">
+                                    <div className="absolute right-0 mt-2 bg-white shadow-xl rounded-xl w-52 py-1 border border-gray-100 overflow-hidden">
                                         <button
                                             onClick={handleProfile}
-                                            className="flex items-center gap-2 px-4 py-2 w-full hover:bg-gray-100 text-left text-gray-700"
+                                            className="flex items-center gap-3 px-4 py-3 w-full hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 text-left text-gray-700 transition-all duration-200 group"
                                         >
-                                            <Settings size={18} /> Chỉnh sửa profile
+                                            <div className="p-1.5 rounded-lg bg-gray-100 group-hover:bg-blue-100 transition-colors">
+                                                <Settings size={18} className="text-gray-600 group-hover:text-blue-600" />
+                                            </div>
+                                            <span className="font-medium text-sm">Chỉnh sửa profile</span>
                                         </button>
-                                        <hr className="border-gray-200" />
+
+                                        <div className="my-1 mx-3 border-t border-gray-100" />
+
                                         <button
                                             onClick={handleLogout}
-                                            className="flex items-center gap-2 px-4 py-2 w-full hover:bg-gray-100 text-left text-gray-700"
+                                            className="flex items-center gap-3 px-4 py-3 w-full hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 text-left text-gray-700 transition-all duration-200 group"
                                         >
-                                            <LogOut size={18} /> Đăng xuất
+                                            <div className="p-1.5 rounded-lg bg-gray-100 group-hover:bg-red-100 transition-colors">
+                                                <LogOut size={18} className="text-gray-600 group-hover:text-red-600" />
+                                            </div>
+                                            <span className="font-medium text-sm">Đăng xuất</span>
                                         </button>
                                     </div>
                                 )}
@@ -199,16 +226,29 @@ const Header: React.FC = () => {
                                 {item.name}
                             </button>
                         ))}
+
                         {!isLoggedIn ? (
                             <button onClick={handleLogin} className="block w-full text-cyan-800 hover:underline">
                                 Đăng nhập
                             </button>
                         ) : (
                             <>
-                                <div className="flex items-center gap-2 text-gray-700">
-                                    <User size={20} />
-                                    <span>{username || 'User'}</span>
+                                {/* AVATAR TRONG MOBILE */}
+                                <div className="flex items-center gap-3 py-2">
+                                    {avatarUrl ? (
+                                        <img
+                                            src={avatarUrl}
+                                            alt="Avatar"
+                                            className="w-10 h-10 rounded-full object-cover border-2 border-cyan-500"
+                                        />
+                                    ) : (
+                                        <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center text-white font-bold">
+                                            {getAvatarFallback()}
+                                        </div>
+                                    )}
+                                    <span className="font-medium text-gray-800">{username || 'User'}</span>
                                 </div>
+
                                 <button onClick={handleProfile} className="block w-full text-left text-gray-700 hover:underline">
                                     Chỉnh sửa profile
                                 </button>

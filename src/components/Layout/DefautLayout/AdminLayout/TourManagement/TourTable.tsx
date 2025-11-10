@@ -1,9 +1,9 @@
 import React from 'react';
-import { MapPin, Calendar, DollarSign, Star, Eye, Edit2, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, DollarSign, Eye, Edit2, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useNavigate } from 'react-router-dom'; // DÙNG BÌNH THƯỜNG
+import { useNavigate } from 'react-router-dom';
 
 interface Tour {
     id: number;
@@ -28,7 +28,6 @@ interface TourTableProps {
     onEdit: (tour: Tour) => void;
     onDelete: (id: number) => Promise<void>;
     formatCurrency: (amount: number) => string;
-    // BỎ onViewDetail vì dùng navigate
 }
 
 const TourTable: React.FC<TourTableProps> = ({
@@ -38,7 +37,7 @@ const TourTable: React.FC<TourTableProps> = ({
     onDelete,
     formatCurrency,
 }) => {
-    const navigate = useNavigate(); // HOÀN TOÀN HỢP LỆ NẾU ĐƯỢC WRAP TRONG ROUTER
+    const navigate = useNavigate();
 
     const handleDelete = async (id: number, name: string) => {
         const result = await Swal.fire({
@@ -103,9 +102,6 @@ const TourTable: React.FC<TourTableProps> = ({
                                 Giá
                             </th>
                             <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
-                                Đánh giá
-                            </th>
-                            <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
                                 Trạng thái
                             </th>
                             <th className={`px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-gray-300' : 'text-slate-600'}`}>
@@ -158,18 +154,7 @@ const TourTable: React.FC<TourTableProps> = ({
                                     </div>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <div className="flex items-center">
-                                        <Star size={14} className="text-yellow-400 fill-current mr-1" />
-                                        <span className={`font-semibold text-sm ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                                            {tour.averageRating}
-                                        </span>
-                                        <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} ml-1`}>
-                                            ({tour.reviewsCount})
-                                        </span>
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${tour.status === 'ACTIVE'
+                                    <span className={`inline-block px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap ${tour.status === 'ACTIVE'
                                         ? (theme === 'dark' ? 'bg-green-900 text-green-400' : 'bg-green-100 text-green-700')
                                         : (theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-700')}`}>
                                         {tour.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm dừng'}
@@ -177,7 +162,6 @@ const TourTable: React.FC<TourTableProps> = ({
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center justify-center gap-1">
-                                        {/* DÙNG useNavigate TRỰC TIẾP */}
                                         <button
                                             onClick={() => navigate(`/admin/tours/${tour.id}`)}
                                             className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-blue-900 text-blue-400' : 'hover:bg-blue-50 text-blue-600'}`}

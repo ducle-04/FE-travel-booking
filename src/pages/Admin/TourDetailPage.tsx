@@ -7,8 +7,13 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
-import axios from 'axios';
 import ImagePreviewModal from '../../components/Layout/DefautLayout/AdminLayout/DestinationManagement/ImagePreviewModal';
+import {
+    fetchTourDetail,
+    updateTourDetail,
+    deleteAdditionalImage,
+    deleteVideo as deleteVideoService
+} from '../../services/tourDetailService';
 
 interface Tour {
     id: number;
@@ -70,17 +75,14 @@ const TourDetailPage: React.FC = () => {
     const formatDate = (date: string) => new Date(date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
     useEffect(() => {
-        if (id) fetchTourDetail();
+        if (id) fetchTourDetailData();
     }, [id]);
 
-    const fetchTourDetail = async () => {
+    const fetchTourDetailData = async () => {
         setLoading(true);
         try {
-            const tourRes = await axios.get(`http://localhost:8080/api/tours/${id}`);
-            const tourData = tourRes.data.tour;
-
+            const tourData = await fetchTourDetail(id!);
             setTour(tourData);
-
             const fetchedDetail = tourData.tourDetail || {
                 transportation: '',
                 itinerary: '',
@@ -91,11 +93,10 @@ const TourDetailPage: React.FC = () => {
                 additionalImages: [],
                 videos: []
             };
-
             setDetail(fetchedDetail);
             setFormData(fetchedDetail);
         } catch (error: any) {
-            toast.error('Không thể tải chi tiết tour');
+            toast.error(error.message || 'Không thể tải chi tiết tour');
             navigate('/admin/tours');
         } finally {
             setLoading(false);
@@ -119,32 +120,16 @@ const TourDetailPage: React.FC = () => {
 
         if (!result.isConfirmed) return;
 
-        const form = new FormData();
-        Object.entries(formData).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-                form.append(key, value.toString());
-            }
-        });
-
-        // ĐÃ CÓ: Thêm nhiều ảnh/video cùng lúc
-        additionalImages.forEach(file => form.append('additionalImages', file));
-        videos.forEach(file => form.append('videos', file));
-
         setIsSubmitting(true);
         try {
-            await axios.post(`http://localhost:8080/api/tours/${id}/details`, form, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
+            await updateTourDetail(token, id, formData, additionalImages, videos);
             toast.success('Cập nhật chi tiết tour thành công!');
             setEditing(false);
             setAdditionalImages([]);
             setVideos([]);
-            fetchTourDetail();
+            fetchTourDetailData();
         } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Cập nhật thất bại');
+            toast.error(error.message || 'Cập nhật thất bại');
         } finally {
             setIsSubmitting(false);
         }
@@ -164,14 +149,11 @@ const TourDetailPage: React.FC = () => {
 
         if (result.isConfirmed && id) {
             try {
-                await axios.delete(`http://localhost:8080/api/tours/${id}/details/images`, {
-                    params: { imageUrl },
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await deleteAdditionalImage(token, id, imageUrl);
                 toast.success('Xóa ảnh thành công');
-                fetchTourDetail();
-            } catch {
-                toast.error('Xóa ảnh thất bại');
+                fetchTourDetailData();
+            } catch (error: any) {
+                toast.error(error.message || 'Xóa ảnh thất bại');
             }
         }
     };
@@ -190,14 +172,11 @@ const TourDetailPage: React.FC = () => {
 
         if (result.isConfirmed && id) {
             try {
-                await axios.delete(`http://localhost:8080/api/tours/${id}/details/videos`, {
-                    params: { videoUrl },
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await deleteVideoService(token, id, videoUrl);
                 toast.success('Xóa video thành công');
-                fetchTourDetail();
-            } catch {
-                toast.error('Xóa video thất bại');
+                fetchTourDetailData();
+            } catch (error: any) {
+                toast.error(error.message || 'Xóa video thất bại');
             }
         }
     };
@@ -505,7 +484,7 @@ const InfoCard = ({ icon: Icon, label, value, color, bold = false }: { icon: any
             </div>
             <div>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{label}</p>
-                <p className={`font-medium ${bold ? 'text-lg font-bold' : ''} (${theme === 'dark' ? 'text-white' : 'text-gray-900'})`}>
+                <p className={`font-medium ${bold ? 'text-lg font-bold' : ''} ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     {value}
                 </p>
             </div>
