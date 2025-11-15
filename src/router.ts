@@ -13,6 +13,8 @@ import DestinationManagement from "./pages/Admin/DestinationManagement";
 import TourManagement from "./pages/Admin/TourManagement";
 import TourDetailPage from "./pages/Admin/TourDetailPage";
 import TourDetailUserPage from "./pages/User/TourDetailUserPage";
+import BookingManagement from "./pages/Admin/BookingManagement";
+import MyBookingsPage from "./pages/User/MyBookingsPage";
 
 const PublicPage = [
     { path: "/", component: Home, layout: UserLayout },
@@ -29,6 +31,8 @@ const PublicPage = [
     { path: "/admin/destinations", component: DestinationManagement, layout: AdminLayout },
     { path: "/admin/tours", component: TourManagement, layout: AdminLayout },
     { path: "/admin/tours/:id", component: TourDetailPage, layout: AdminLayout },
+    { path: "/admin/bookings", component: BookingManagement, layout: AdminLayout },
+    { path: "/my-tours", component: MyBookingsPage, layout: UserLayout },
 ];
 
 const PrivatePage: any[] = [];

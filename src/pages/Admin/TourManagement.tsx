@@ -349,6 +349,7 @@ const TourManagement: React.FC = () => {
                 onSubmit={handleSubmit}
                 theme={theme}
                 openImageModal={openImageModal}
+                destinations={destinations}
             />
 
             <ImagePreviewModal

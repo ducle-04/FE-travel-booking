@@ -24,12 +24,15 @@ const TourStats: React.FC<TourStatsProps> = ({ theme }) => {
             try {
                 const response = await fetch('http://localhost:8080/api/tours/stats');
                 if (!response.ok) throw new Error('Không thể tải thống kê tour');
-                const data = await response.json();
+                const result = await response.json();
+
+                // Kiểm tra cấu trúc response
+                const data = result.data;
                 setStats({
-                    totalTours: data.stats.totalTours || 0,
-                    activeTours: data.stats.activeTours || 0,
-                    inactiveTours: data.stats.inactiveTours || 0,
-                    totalBookings: data.stats.totalBookings || 0
+                    totalTours: data.totalTours || 0,
+                    activeTours: data.activeTours || 0,
+                    inactiveTours: data.inactiveTours || 0,
+                    totalBookings: data.totalConfirmedBookings || 0  // ĐÃ SỬA
                 });
             } catch (error) {
                 console.error('Lỗi khi tải thống kê tour:', error);
@@ -43,7 +46,9 @@ const TourStats: React.FC<TourStatsProps> = ({ theme }) => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
             <div className={`rounded-xl p-4 ${theme === 'dark' ? 'bg-gray-700' : 'bg-blue-50'}`}>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>Tổng Tours</p>
-                <p className={`text-2xl font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>{stats.totalTours}</p>
+                <p className={`text-2xl font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>
+                    {stats.totalTours}
+                </p>
             </div>
             <div className={`rounded-xl p-4 ${theme === 'dark' ? 'bg-gray-700' : 'bg-green-50'}`}>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>Đang Hoạt Động</p>

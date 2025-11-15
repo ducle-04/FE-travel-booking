@@ -40,9 +40,10 @@ export interface TourResponse {
     totalItems: number;
 }
 
-// Helper: chuyển Page<T> từ backend → TourResponse
+// === HELPER: CHUYỂN PAGE<T> TỪ BACKEND → TOUR RESPONSE ===
 const mapPageToResponse = (page: any): TourResponse => {
-    const tours = (page.content || []).map((tour: any) => ({
+    const content = page.content || [];
+    const tours = content.map((tour: any) => ({
         ...tour,
         status: tour.status.toUpperCase() as 'ACTIVE' | 'INACTIVE',
         maxParticipants: tour.maxParticipants || 50,
@@ -55,12 +56,12 @@ const mapPageToResponse = (page: any): TourResponse => {
     };
 };
 
-// 1. Lấy danh sách điểm đến (chỉ ACTIVE)
+// === 1. LẤY DANH SÁCH ĐIỂM ĐẾN (CHỈ ACTIVE) ===
 export const fetchDestinations = async (): Promise<Destination[]> => {
     try {
         const response = await axios.get('http://localhost:8080/api/destinations');
         return response.data.data
-            .filter((dest: any) => dest.status === 'ACTIVE') // ← CHỈ LẤY ACTIVE
+            .filter((dest: any) => dest.status === 'ACTIVE')
             .map((dest: any) => ({
                 id: dest.id,
                 name: dest.name,
@@ -70,7 +71,7 @@ export const fetchDestinations = async (): Promise<Destination[]> => {
     }
 };
 
-// 2. Tìm kiếm + lọc tour (admin/staff)
+// === 2. TÌM KIẾM + LỌC TOUR (ADMIN/STAFF) ===
 export const fetchTours = async (
     page: number = 0,
     searchTerm?: string,
@@ -90,13 +91,14 @@ export const fetchTours = async (
         const endpoint = searchTerm ? '/api/tours/search' : '/api/tours/filter';
         const response = await axios.get(`http://localhost:8080${endpoint}`, { params });
 
-        return mapPageToResponse(response.data.data); // ← Sửa ở đây
+        // SỬA: response.data.data là Page<TourDTO>
+        return mapPageToResponse(response.data.data);
     } catch (error: any) {
         throw new Error(error.response?.data?.message || 'Không thể tải danh sách tour');
     }
 };
 
-// 3. Lấy tour cho khách (chỉ ACTIVE)
+// === 3. LẤY TOUR CHO KHÁCH (CHỈ ACTIVE) ===
 export const fetchTours2 = async (
     page: number = 0,
     searchTerm?: string,
@@ -123,13 +125,13 @@ export const fetchTours2 = async (
     }
 };
 
-// 4. Lấy tour theo điểm đến
+// === 4. LẤY TOUR THEO ĐIỂM ĐẾN ===
 export const fetchToursByDestination = async (destinationId: string): Promise<TourResponse> => {
     try {
         const response = await axios.get(`http://localhost:8080/api/tours/destination/${destinationId}`);
         const tours = (response.data.data || []).map((tour: any) => ({
             ...tour,
-            status: tour.status.toUpperCase() as 'ACTIVE',
+            status: tour.status.toUpperCase() as 'ACTIVE' | 'INACTIVE',
             maxParticipants: tour.maxParticipants || 50,
         }));
         return {
@@ -142,13 +144,13 @@ export const fetchToursByDestination = async (destinationId: string): Promise<To
     }
 };
 
-// 5. Thêm tour
+// === 5. THÊM TOUR (ADMIN/STAFF) ===
 export const addTour = async (token: string, tourData: FormData): Promise<Tour> => {
     try {
         const response = await axios.post('http://localhost:8080/api/tours', tourData, {
             headers: {
                 Authorization: `Bearer ${token}`,
-                // Không cần set Content-Type khi dùng FormData → axios tự set boundary
+                // ĐÚNG: Không set Content-Type → axios tự thêm boundary
             },
         });
         const tour = response.data.data;
@@ -162,7 +164,7 @@ export const addTour = async (token: string, tourData: FormData): Promise<Tour> 
     }
 };
 
-// 6. Cập nhật tour
+// === 6. CẬP NHẬT TOUR (ADMIN/STAFF) ===
 export const updateTour = async (token: string, id: number, tourData: FormData): Promise<Tour> => {
     try {
         const response = await axios.put(`http://localhost:8080/api/tours/${id}`, tourData, {
@@ -181,7 +183,7 @@ export const updateTour = async (token: string, id: number, tourData: FormData):
     }
 };
 
-// 7. Xóa tour
+// === 7. XÓA TOUR (ADMIN/STAFF) ===
 export const deleteTour = async (token: string, id: number): Promise<void> => {
     try {
         await axios.delete(`http://localhost:8080/api/tours/${id}`, {
