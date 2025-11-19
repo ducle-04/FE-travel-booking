@@ -9,6 +9,8 @@ import ProfilePage from "./pages/User/ProfilePage";
 import UserManagement from "./pages/Admin/UserManagement";
 import DestinationsPage from "./pages/User/Destinations";
 import Tour from "./pages/User/Tour";
+import Blog from "./pages/User/Blog";
+import BlogDetailPage from "./pages/User/BlogDetailPage";
 import DestinationManagement from "./pages/Admin/DestinationManagement";
 import TourManagement from "./pages/Admin/TourManagement";
 import TourDetailPage from "./pages/Admin/TourDetailPage";
@@ -25,7 +27,9 @@ const PublicPage = [
     { path: "/profile", component: ProfilePage, layout: UserLayout },
     { path: "/destinations", component: DestinationsPage, layout: UserLayout },
     { path: "/tours", component: Tour, layout: UserLayout },
+    { path: "/blog", component: Blog, layout: UserLayout },
     { path: "/tour/:id", component: TourDetailUserPage, layout: UserLayout },
+    { path: "/blog/:id", component: BlogDetailPage, layout: UserLayout },
     { path: "/admin", component: AdminDashboard, layout: AdminLayout },
     { path: "/admin/users", component: UserManagement, layout: AdminLayout },
     { path: "/admin/destinations", component: DestinationManagement, layout: AdminLayout },
