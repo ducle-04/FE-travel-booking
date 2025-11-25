@@ -28,7 +28,7 @@ const menu = [
     { label: "Quản lý Đặt Tour", icon: <FaShoppingCart className="w-5 h-5" />, path: "/admin/bookings" },
     { label: "Quản lý Tài Khoản", icon: <FaUsers className="w-5 h-5" />, path: "/admin/users" },
     { label: "Quản lý Điểm Đến", icon: <FaGlobeAsia className="w-5 h-5" />, path: "/admin/destinations" },
-    { label: "Quản lý Bài Viết", icon: <FaNewspaper className="w-5 h-5" />, path: "/admin/posts" },
+    { label: "Quản lý Bài Viết", icon: <FaNewspaper className="w-5 h-5" />, path: "/admin/blogs" },
     { label: "Quản lý Banner", icon: <FaFlag className="w-5 h-5" />, path: "/admin/banners" },
     { label: "Phản Hồi / Đánh Giá", icon: <FaRegComments className="w-5 h-5" />, path: "/admin/reviews" },
     { label: "Cài Đặt Hệ Thống", icon: <FaCog className="w-5 h-5" />, path: "/admin/settings" },
@@ -81,12 +81,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
                             <Link
                                 to={item.path}
                                 className={`flex items-center px-3 py-3 rounded-lg transition-all ${location.pathname.startsWith(item.path)
-                                        ? theme === "dark"
-                                            ? "bg-indigo-900 text-indigo-300"
-                                            : "bg-indigo-50 text-indigo-600"
-                                        : theme === "dark"
-                                            ? "text-gray-300 hover:bg-gray-700"
-                                            : "text-gray-600 hover:bg-gray-100"
+                                    ? theme === "dark"
+                                        ? "bg-indigo-900 text-indigo-300"
+                                        : "bg-indigo-50 text-indigo-600"
+                                    : theme === "dark"
+                                        ? "text-gray-300 hover:bg-gray-700"
+                                        : "text-gray-600 hover:bg-gray-100"
                                     }`}
                             >
                                 <span className="mr-3">{item.icon}</span>
