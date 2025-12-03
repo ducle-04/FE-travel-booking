@@ -14,6 +14,7 @@ import ContactPage from "./pages/User/ContactPage";
 import BlogDetailPage from "./pages/User/BlogDetailPage";
 import DestinationManagement from "./pages/Admin/DestinationManagement";
 import TourManagement from "./pages/Admin/TourManagement";
+import TourCategoryManagement from "./pages/Admin/TourCategoryManagement";
 import TourDetailPage from "./pages/Admin/TourDetailPage";
 import TourDetailUserPage from "./pages/User/TourDetailUserPage";
 import BookingManagement from "./pages/Admin/BookingManagement";
@@ -38,6 +39,7 @@ const PublicPage = [
     { path: "/admin/destinations", component: DestinationManagement, layout: AdminLayout },
     { path: "/admin/tours", component: TourManagement, layout: AdminLayout },
     { path: "/admin/tours/:id", component: TourDetailPage, layout: AdminLayout },
+    { path: "/admin/tour-categories", component: TourCategoryManagement, layout: AdminLayout },
     { path: "/admin/bookings", component: BookingManagement, layout: AdminLayout },
     { path: "/admin/blogs", component: AdminBlogManagement, layout: AdminLayout },
     { path: "/my-tours", component: MyBookingsPage, layout: UserLayout },

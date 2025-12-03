@@ -6,24 +6,16 @@ import TourFormModal from '../../components/Layout/DefautLayout/AdminLayout/Tour
 import ImagePreviewModal from '../../components/Layout/DefautLayout/AdminLayout/DestinationManagement/ImagePreviewModal';
 import Pagination from '../../components/Layout/DefautLayout/AdminLayout/UserManagement/Pagination';
 import TourStats from '../../components/Layout/DefautLayout/AdminLayout/TourManagement/TourStats';
-import { fetchDestinations, fetchTours, addTour, updateTour, deleteTour } from '../../services/tourService';
-
-interface Tour {
-    id: number;
-    name: string;
-    imageUrl: string;
-    destinationName: string;
-    duration: string;
-    price: number;
-    description: string;
-    averageRating: number;
-    totalParticipants: number;
-    maxParticipants: number;
-    status: 'ACTIVE' | 'INACTIVE';
-    createdAt: string;
-    bookingsCount: number;
-    reviewsCount: number;
-}
+import {
+    fetchDestinations,
+    fetchTours,
+    fetchTourCategories,
+    addTour,
+    updateTour,
+    deleteTour,
+    type TourCategory,
+    type Tour,
+} from '../../services/tourService';
 
 interface Destination {
     id: number;
@@ -39,25 +31,32 @@ interface FormData {
     description: string;
     status: 'ACTIVE' | 'INACTIVE';
     maxParticipants: string;
+    categoryId: string;
+    startDates: string[];
 }
 
 const TourManagement: React.FC = () => {
     const { theme } = useTheme();
+
     const [tours, setTours] = useState<Tour[]>([]);
     const [destinations, setDestinations] = useState<Destination[]>([]);
+    const [tourCategories, setTourCategories] = useState<TourCategory[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [selectedDestination, setSelectedDestination] = useState<string>('all');
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
+    const [selectedCategory, setSelectedCategory] = useState<string>('all'); // ← Lọc loại tour
     const [minPrice, setMinPrice] = useState<string>('');
     const [maxPrice, setMaxPrice] = useState<string>('');
     const [currentPage, setCurrentPage] = useState<number>(0);
     const [totalPages, setTotalPages] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
+
     const [showModal, setShowModal] = useState<boolean>(false);
     const [showImageModal, setShowImageModal] = useState<boolean>(false);
     const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
+
     const [formData, setFormData] = useState<FormData>({
         name: '',
         imageUrl: '',
@@ -67,30 +66,47 @@ const TourManagement: React.FC = () => {
         description: '',
         status: 'ACTIVE',
         maxParticipants: '50',
+        categoryId: '',
+        startDates: [],
     });
+
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
     const getToken = () => localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken') || '';
 
+    // Load danh sách điểm đến & loại tour
     useEffect(() => {
         fetchDestinationsData();
-        fetchToursData();
-    }, [currentPage, selectedDestination, selectedStatus, minPrice, maxPrice]);
+        fetchTourCategoriesData();
+    }, []);
 
+    // Load tour khi thay đổi bộ lọc hoặc trang
     useEffect(() => {
-        if (totalItems <= 10 && currentPage !== 0) {
-            setCurrentPage(0);
-        }
-    }, [totalItems, currentPage]);
+        fetchToursData();
+    }, [currentPage, searchTerm, selectedDestination, selectedStatus, selectedCategory, minPrice, maxPrice]);
+
+    // Reset trang khi tìm kiếm hoặc đổi loại tour
+    useEffect(() => {
+        setCurrentPage(0);
+    }, [searchTerm, selectedCategory]);
 
     const fetchDestinationsData = async () => {
         try {
             const data = await fetchDestinations();
             setDestinations(data);
-        } catch (error: any) {
-            console.error('Lỗi khi tải danh sách điểm đến:', error.message);
+        } catch (err) {
+            console.error('Lỗi tải điểm đến');
+        }
+    };
+
+    const fetchTourCategoriesData = async () => {
+        try {
+            const cats = await fetchTourCategories();
+            setTourCategories(cats);
+        } catch (err) {
+            console.warn('Không tải được loại tour');
         }
     };
 
@@ -99,17 +115,18 @@ const TourManagement: React.FC = () => {
         try {
             const { tours, totalPages, totalItems } = await fetchTours(
                 currentPage,
-                searchTerm,
-                selectedDestination,
-                selectedStatus,
-                minPrice,
-                maxPrice
+                searchTerm || undefined,
+                selectedDestination === 'all' ? undefined : selectedDestination,
+                selectedStatus === 'all' ? undefined : selectedStatus,
+                minPrice || undefined,
+                maxPrice || undefined,
+                selectedCategory === 'all' ? undefined : selectedCategory
             );
             setTours(tours);
             setTotalPages(totalPages);
             setTotalItems(totalItems);
-        } catch (error: any) {
-            console.error('Lỗi khi tải danh sách tour:', error.message);
+        } catch (err) {
+            console.error('Lỗi tải tour');
         } finally {
             setLoading(false);
         }
@@ -120,13 +137,7 @@ const TourManagement: React.FC = () => {
         fetchToursData();
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            handleSearch();
-        }
-    };
-
-    const resetForm = (): void => {
+    const resetForm = () => {
         setFormData({
             name: '',
             imageUrl: '',
@@ -136,6 +147,8 @@ const TourManagement: React.FC = () => {
             description: '',
             status: 'ACTIVE',
             maxParticipants: '50',
+            categoryId: '',
+            startDates: [],
         });
         setImageFile(null);
         setImagePreview(null);
@@ -154,6 +167,8 @@ const TourManagement: React.FC = () => {
                 description: tour.description,
                 status: tour.status,
                 maxParticipants: tour.maxParticipants.toString(),
+                categoryId: tour.categoryId?.toString() || '',
+                startDates: tour.startDates || [],
             });
             setImagePreview(tour.imageUrl);
         } else {
@@ -162,75 +177,66 @@ const TourManagement: React.FC = () => {
         setShowModal(true);
     };
 
-    const handleDelete = async (id: number): Promise<void> => {
+    const handleDelete = async (id: number) => {
         setLoading(true);
         try {
             const token = getToken();
             await deleteTour(token, id);
-            setTours(prev => prev.filter(tour => tour.id !== id));
-            if (tours.length === 1 && currentPage > 0) {
-                setCurrentPage(0);
-            } else {
-                fetchToursData();
-            }
-        } catch (error: any) {
-            throw new Error(error.message || 'Xóa tour thất bại');
+            fetchToursData();
+        } catch (err: any) {
+            alert(err.message || 'Xóa thất bại');
         } finally {
             setLoading(false);
         }
     };
 
-    const openImageModal = (imageUrl: string) => {
-        setImageModalUrl(imageUrl);
+    const openImageModal = (url: string) => {
+        setImageModalUrl(url);
         setShowImageModal(true);
     };
 
-    const formatCurrency = (amount: number): string => {
-        return new Intl.NumberFormat('vi-VN', {
-            style: 'currency',
-            currency: 'VND',
-        }).format(amount);
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
 
-    const handlePageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalPages) {
-            setCurrentPage(newPage - 1);
+    const handlePageChange = (page: number) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page - 1);
         }
     };
 
     const handleSubmit = async () => {
         const token = getToken();
+        if (!token) throw new Error('Phiên đăng nhập đã hết hạn');
+
+        const selectedCat = tourCategories.find(cat => cat.id === Number(formData.categoryId));
+        if (formData.categoryId && !selectedCat) throw new Error('Loại tour không hợp lệ');
+
         const tourData = new FormData();
         const parsedData = {
             ...formData,
             price: parseFloat(formData.price) || 0,
             maxParticipants: parseInt(formData.maxParticipants) || 50,
+            categoryName: selectedCat?.name || null,
+            startDates: formData.startDates.filter(date => date.trim() !== ''),
         };
 
-        tourData.append('tour', JSON.stringify(parsedData));
-        if (imageFile) {
-            tourData.append('image', imageFile);
-        }
+        const { categoryId, ...dataToSend } = parsedData;
+        tourData.append('tour', JSON.stringify(dataToSend));
+        if (imageFile) tourData.append('image', imageFile);
 
         setLoading(true);
         try {
-            let updatedTours: Tour[];
             if (modalMode === 'add') {
-                const newTour = await addTour(token, tourData);
-                updatedTours = [...tours, newTour];
+                await addTour(token, tourData);
             } else if (selectedTour) {
-                const updatedTour = await updateTour(token, selectedTour.id, tourData);
-                updatedTours = tours.map(t => (t.id === selectedTour.id ? updatedTour : t));
-            } else {
-                throw new Error('Không có tour để cập nhật');
+                await updateTour(token, selectedTour.id, tourData);
             }
-
-            setTours(updatedTours);
+            fetchToursData();
             setShowModal(false);
             resetForm();
-            fetchToursData();
         } catch (error: any) {
-            throw new Error(error.message || 'Lưu tour thất bại');
+            alert(error.message || 'Lưu tour thất bại');
         } finally {
             setLoading(false);
         }
@@ -239,75 +245,163 @@ const TourManagement: React.FC = () => {
     return (
         <div className={`min-h-screen p-6 ${theme === 'dark' ? 'bg-gradient-to-br from-gray-900 to-gray-700' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}>
             <div className="max-w-7xl mx-auto">
-                {/* BỎ shadow-lg → dùng border nhẹ */}
+                {/* Header + Bộ lọc nâng cao */}
                 <div className={`rounded-2xl p-6 mb-6 ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-slate-200'}`}>
                     <h1 className={`text-3xl font-bold mb-6 ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
                         Quản Lý Tour Du Lịch
                     </h1>
 
-                    <div className="space-y-4">
+                    <div className="space-y-5">
+
+                        {/* Tìm kiếm + Thêm tour */}
                         <div className="flex flex-col sm:flex-row gap-3">
                             <div className="relative flex-1">
-                                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400`} size={20} />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                 <input
                                     type="text"
-                                    placeholder="Tìm kiếm theo tên tour..."
+                                    placeholder="Tìm kiếm tour..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)} // ĐÃ SỬA
-                                    onKeyPress={handleKeyPress}
-                                    className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-white text-gray-800 border-gray-300'}`}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                    className={`w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300'}`}
                                 />
                             </div>
-                            <button
-                                onClick={handleSearch}
-                                className={`px-6 py-3 rounded-xl text-white font-medium transition-all ${theme === 'dark' ? 'bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'}`}
-                            >
+                            <button onClick={handleSearch} className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium">
                                 Tìm kiếm
                             </button>
-                            <button
-                                onClick={() => openModal('add')}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium transition-all ${theme === 'dark' ? 'bg-gradient-to-r from-green-700 to-emerald-800 hover:from-green-800 hover:to-emerald-900' : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'}`}
-                            >
+                            <button onClick={() => openModal('add')} className="flex items-center gap-2 px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium">
                                 <Plus size={20} /> Thêm Tour Mới
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                            <select
-                                value={selectedDestination}
-                                onChange={(e) => setSelectedDestination(e.target.value)}
-                                className={`px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-white text-gray-800 border-gray-300'}`}
-                            >
-                                <option value="all">Tất cả điểm đến</option>
-                                {destinations.map((dest) => (
-                                    <option key={dest.id} value={dest.name}>{dest.name}</option>
-                                ))}
-                            </select>
+                        {/* Bộ lọc nâng cao */}
+                        <div className="space-y-4">
+                            {/* Hàng 1: Các bộ lọc cơ bản */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Điểm đến */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                                        Điểm đến
+                                    </label>
+                                    <select
+                                        value={selectedDestination}
+                                        onChange={(e) => { setSelectedDestination(e.target.value); setCurrentPage(0); }}
+                                        className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300'}`}
+                                    >
+                                        <option value="all">Tất cả điểm đến</option>
+                                        {destinations.map(d => (
+                                            <option key={d.id} value={d.name}>{d.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            <select
-                                value={selectedStatus}
-                                onChange={(e) => setSelectedStatus(e.target.value)}
-                                className={`px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-white text-gray-800 border-gray-300'}`}
-                            >
-                                <option value="all">Tất cả trạng thái</option>
-                                <option value="ACTIVE">Hoạt động</option>
-                                <option value="INACTIVE">Tạm ngưng</option>
-                            </select>
+                                {/* Loại tour */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                                        Loại tour
+                                    </label>
+                                    <select
+                                        value={selectedCategory}
+                                        onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(0); }}
+                                        className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300'}`}
+                                    >
+                                        <option value="all">Tất cả loại tour</option>
+                                        {tourCategories.map(cat => (
+                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            <input
-                                type="number"
-                                placeholder="Giá tối thiểu"
-                                value={minPrice}
-                                onChange={(e) => setMinPrice(e.target.value)}
-                                className={`px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-white text-gray-800 border-gray-300'}`}
-                            />
-                            <input
-                                type="number"
-                                placeholder="Giá tối đa"
-                                value={maxPrice}
-                                onChange={(e) => setMaxPrice(e.target.value)}
-                                className={`px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-white text-gray-800 border-gray-300'}`}
-                            />
+                                {/* Trạng thái */}
+                                <div>
+                                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                                        Trạng thái
+                                    </label>
+                                    <select
+                                        value={selectedStatus}
+                                        onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(0); }}
+                                        className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300'}`}
+                                    >
+                                        <option value="all">Tất cả trạng thái</option>
+                                        <option value="ACTIVE">Đang hoạt động</option>
+                                        <option value="INACTIVE">Tạm dừng</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Hàng 2: Lọc giá */}
+                            <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                                <label className={`block text-sm font-medium mb-3 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    Khoảng giá (VNĐ)
+                                </label>
+
+                                {/* Khoảng giá nhanh */}
+                                <div className="mb-4">
+                                    <p className={`text-xs font-medium mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                        Khoảng giá nhanh
+                                    </p>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                        {[
+                                            { label: 'Dưới 2 triệu', min: '', max: '2000000' },
+                                            { label: '2 - 5 triệu', min: '2000000', max: '5000000' },
+                                            { label: '5 - 10 triệu', min: '5000000', max: '10000000' },
+                                            { label: 'Trên 10 triệu', min: '10000000', max: '' },
+                                        ].map((preset) => (
+                                            <button
+                                                key={preset.label}
+                                                onClick={() => {
+                                                    setMinPrice(preset.min);
+                                                    setMaxPrice(preset.max);
+                                                    setCurrentPage(0);
+                                                }}
+                                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all border-2 ${minPrice === preset.min && maxPrice === preset.max
+                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                                                    : theme === 'dark'
+                                                        ? 'bg-gray-700 border-gray-600 hover:border-gray-500 text-gray-200'
+                                                        : 'bg-white border-gray-300 hover:border-gray-400 text-gray-700'
+                                                    }`}
+                                            >
+                                                {preset.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Đường phân cách */}
+                                <div className={`border-t my-4 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}></div>
+
+                                {/* Khoảng giá tùy chỉnh */}
+                                <div>
+                                    <p className={`text-xs font-medium mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                        Khoảng giá tùy chỉnh
+                                    </p>
+                                    <div className="flex gap-3 items-center">
+                                        <input
+                                            type="number"
+                                            placeholder="Từ"
+                                            value={minPrice}
+                                            onChange={(e) => { setMinPrice(e.target.value); setCurrentPage(0); }}
+                                            className={`flex-1 px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300'}`}
+                                        />
+                                        <span className={`text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>→</span>
+                                        <input
+                                            type="number"
+                                            placeholder="Đến"
+                                            value={maxPrice}
+                                            onChange={(e) => { setMaxPrice(e.target.value); setCurrentPage(0); }}
+                                            className={`flex-1 px-4 py-3 rounded-xl border focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300'}`}
+                                        />
+                                        {(minPrice || maxPrice) && (
+                                            <button
+                                                onClick={() => { setMinPrice(''); setMaxPrice(''); setCurrentPage(0); }}
+                                                className="px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:text-white hover:bg-red-500 transition-all border-2 border-red-500"
+                                            >
+                                                Xóa
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -316,15 +410,18 @@ const TourManagement: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Bảng tour */}
                 <TourTable
                     tours={tours}
                     theme={theme}
                     onEdit={(tour) => openModal('edit', tour)}
                     onDelete={handleDelete}
                     formatCurrency={formatCurrency}
+                    loading={loading}
                 />
 
-                <div className="mt-6">
+                {/* Phân trang */}
+                <div className="mt-6 flex justify-center">
                     <Pagination
                         currentPage={currentPage + 1}
                         totalPages={totalPages}
@@ -335,6 +432,7 @@ const TourManagement: React.FC = () => {
                 </div>
             </div>
 
+            {/* Modal thêm/sửa */}
             <TourFormModal
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
@@ -350,13 +448,10 @@ const TourManagement: React.FC = () => {
                 theme={theme}
                 openImageModal={openImageModal}
                 destinations={destinations}
+                categories={tourCategories}
             />
 
-            <ImagePreviewModal
-                isOpen={showImageModal}
-                imageUrl={imageModalUrl}
-                onClose={() => setShowImageModal(false)}
-            />
+            <ImagePreviewModal isOpen={showImageModal} imageUrl={imageModalUrl} onClose={() => setShowImageModal(false)} />
         </div>
     );
 };

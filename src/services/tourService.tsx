@@ -15,23 +15,21 @@ export interface Tour {
     createdAt: string;
     bookingsCount: number;
     reviewsCount: number;
-    tourDetail?: TourDetail;
-}
-
-export interface TourDetail {
-    transportation: string;
-    itinerary: string;
-    departurePoint: string;
-    departureTime: string;
-    suitableFor: string;
-    cancellationPolicy: string;
-    additionalImages: string[];
-    videos: string[];
+    categoryId?: number;
+    categoryName?: string;
+    categoryIcon?: string;
+    startDates?: string[];
 }
 
 export interface Destination {
     id: number;
     name: string;
+}
+
+export interface TourCategory {
+    id: number;
+    name: string;
+    icon: string;
 }
 
 export interface TourResponse {
@@ -40,13 +38,23 @@ export interface TourResponse {
     totalItems: number;
 }
 
-// === HELPER: CHUYỂN PAGE<T> TỪ BACKEND → TOUR RESPONSE ===
+export interface TourStatsData {
+    totalTours: number;
+    activeTours: number;
+    inactiveTours: number;
+    totalConfirmedBookings: number;
+}
+
 const mapPageToResponse = (page: any): TourResponse => {
     const content = page.content || [];
     const tours = content.map((tour: any) => ({
         ...tour,
-        status: tour.status.toUpperCase() as 'ACTIVE' | 'INACTIVE',
+        status: (tour.status || 'ACTIVE').toUpperCase() as 'ACTIVE' | 'INACTIVE',
         maxParticipants: tour.maxParticipants || 50,
+        categoryId: tour.categoryId,
+        categoryName: tour.categoryName,
+        categoryIcon: tour.categoryIcon || 'MapPin',
+        startDates: tour.startDates || [],
     }));
 
     return {
@@ -56,142 +64,132 @@ const mapPageToResponse = (page: any): TourResponse => {
     };
 };
 
-// === 1. LẤY DANH SÁCH ĐIỂM ĐẾN (CHỈ ACTIVE) ===
 export const fetchDestinations = async (): Promise<Destination[]> => {
     try {
         const response = await axios.get('http://localhost:8080/api/destinations');
         return response.data.data
             .filter((dest: any) => dest.status === 'ACTIVE')
-            .map((dest: any) => ({
-                id: dest.id,
-                name: dest.name,
-            }));
+            .map((dest: any) => ({ id: dest.id, name: dest.name }));
     } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Không thể tải danh sách điểm đến');
+        throw new Error(error.response?.data?.message || 'Không thể tải điểm đến');
     }
 };
 
-// === 2. TÌM KIẾM + LỌC TOUR (ADMIN/STAFF) ===
+export const fetchTourCategories = async (): Promise<TourCategory[]> => {
+    try {
+        const response = await axios.get('http://localhost:8080/api/tour-categories/active');
+        return response.data.data.map((cat: any) => ({
+            id: cat.id,
+            name: cat.name,
+            icon: cat.icon || 'MapPin',
+        }));
+    } catch (error) {
+        console.warn('Dùng dữ liệu mẫu loại tour');
+        return [
+            { id: 1, name: 'Biển đảo', icon: 'Waves' },
+            { id: 2, name: 'Núi rừng', icon: 'Trees' },
+            { id: 3, name: 'Văn hóa - Lịch sử', icon: 'Landmark' },
+            { id: 4, name: 'Ẩm thực', icon: 'Utensils' },
+            { id: 5, name: 'MICE & Teambuilding', icon: 'Briefcase' },
+        ];
+    }
+};
+
 export const fetchTours = async (
     page: number = 0,
     searchTerm?: string,
     destinationName?: string,
     status?: string,
     minPrice?: string,
-    maxPrice?: string
+    maxPrice?: string,
+    categoryId?: string
 ): Promise<TourResponse> => {
-    try {
-        const params = new URLSearchParams({ page: page.toString() });
-        if (searchTerm) params.append('name', searchTerm);
-        if (destinationName && destinationName !== 'all') params.append('destinationName', destinationName);
-        if (status && status !== 'all') params.append('status', status);
-        if (minPrice) params.append('minPrice', minPrice);
-        if (maxPrice) params.append('maxPrice', maxPrice);
+    const params = new URLSearchParams({ page: page.toString() });
+    if (searchTerm) params.append('name', searchTerm);
+    if (destinationName && destinationName !== 'all') params.append('destinationName', destinationName);
+    if (status && status !== 'all') params.append('status', status);
+    if (minPrice) params.append('minPrice', minPrice);
+    if (maxPrice) params.append('maxPrice', maxPrice);
+    if (categoryId && categoryId !== 'all') params.append('categoryId', categoryId);
 
-        const endpoint = searchTerm ? '/api/tours/search' : '/api/tours/filter';
-        const response = await axios.get(`http://localhost:8080${endpoint}`, { params });
-
-        // SỬA: response.data.data là Page<TourDTO>
-        return mapPageToResponse(response.data.data);
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Không thể tải danh sách tour');
-    }
+    const endpoint = searchTerm ? '/api/tours/search' : '/api/tours/filter';
+    const response = await axios.get(`http://localhost:8080${endpoint}`, { params });
+    return mapPageToResponse(response.data.data);
 };
 
-// === 3. LẤY TOUR CHO KHÁCH (CHỈ ACTIVE) ===
-export const fetchTours2 = async (
+export const fetchToursForCustomer = async (
     page: number = 0,
     searchTerm?: string,
     destinationName?: string,
     minPrice?: string,
-    maxPrice?: string
+    maxPrice?: string,
+    categoryId?: string
 ): Promise<TourResponse> => {
-    try {
-        const params = new URLSearchParams({
-            page: page.toString(),
-            status: 'ACTIVE'
-        });
-        if (searchTerm) params.append('name', searchTerm);
-        if (destinationName && destinationName !== 'all') params.append('destinationName', destinationName);
-        if (minPrice) params.append('minPrice', minPrice);
-        if (maxPrice) params.append('maxPrice', maxPrice);
-
-        const endpoint = searchTerm ? '/api/tours/search' : '/api/tours/filter';
-        const response = await axios.get(`http://localhost:8080${endpoint}`, { params });
-
-        return mapPageToResponse(response.data.data);
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Không thể tải danh sách tour');
-    }
+    return fetchTours(page, searchTerm, destinationName, 'ACTIVE', minPrice, maxPrice, categoryId);
 };
 
-// === 4. LẤY TOUR THEO ĐIỂM ĐẾN ===
+export const addTour = async (token: string, tourData: FormData): Promise<Tour> => {
+    const response = await axios.post('http://localhost:8080/api/tours', tourData, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data.data;
+};
+
+export const updateTour = async (token: string, id: number, tourData: FormData): Promise<Tour> => {
+    const response = await axios.put(`http://localhost:8080/api/tours/${id}`, tourData, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data.data;
+};
+
+export const deleteTour = async (token: string, id: number): Promise<void> => {
+    await axios.delete(`http://localhost:8080/api/tours/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+};
+
 export const fetchToursByDestination = async (destinationId: string): Promise<TourResponse> => {
     try {
         const response = await axios.get(`http://localhost:8080/api/tours/destination/${destinationId}`);
         const tours = (response.data.data || []).map((tour: any) => ({
             ...tour,
-            status: tour.status.toUpperCase() as 'ACTIVE' | 'INACTIVE',
+            status: (tour.status || 'ACTIVE').toUpperCase() as 'ACTIVE' | 'INACTIVE',
             maxParticipants: tour.maxParticipants || 50,
+            categoryId: tour.category?.id || tour.categoryId,
+            categoryName: tour.category?.name || tour.categoryName,
+            categoryIcon: tour.category?.icon || 'MapPin',
+            startDates: tour.startDates || [], // ← Đảm bảo có ngày khởi hành
         }));
         return {
             tours,
             totalPages: 1,
-            totalItems: tours.length,
+            totalItems: tours.length
         };
     } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Không thể tải danh sách tour theo điểm đến');
+        console.error('Lỗi tải tour theo điểm đến:', error);
+        throw new Error(error.response?.data?.message || 'Không thể tải tour theo điểm đến');
     }
 };
 
-// === 5. THÊM TOUR (ADMIN/STAFF) ===
-export const addTour = async (token: string, tourData: FormData): Promise<Tour> => {
+export const fetchTourStats = async (): Promise<TourStatsData> => {
     try {
-        const response = await axios.post('http://localhost:8080/api/tours', tourData, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                // ĐÚNG: Không set Content-Type → axios tự thêm boundary
-            },
-        });
-        const tour = response.data.data;
+        const response = await axios.get('http://localhost:8080/api/tours/stats');
+        const data = response.data.data;
+
         return {
-            ...tour,
-            status: tour.status.toUpperCase() as 'ACTIVE' | 'INACTIVE',
-            maxParticipants: tour.maxParticipants || 50,
+            totalTours: data.totalTours || 0,
+            activeTours: data.activeTours || 0,
+            inactiveTours: data.inactiveTours || 0,
+            totalConfirmedBookings: data.totalConfirmedBookings || 0,
         };
     } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Không thể thêm tour');
-    }
-};
-
-// === 6. CẬP NHẬT TOUR (ADMIN/STAFF) ===
-export const updateTour = async (token: string, id: number, tourData: FormData): Promise<Tour> => {
-    try {
-        const response = await axios.put(`http://localhost:8080/api/tours/${id}`, tourData, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        const tour = response.data.data;
-        return {
-            ...tour,
-            status: tour.status.toUpperCase() as 'ACTIVE' | 'INACTIVE',
-            maxParticipants: tour.maxParticipants || 50,
-        };
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Không thể cập nhật tour');
-    }
-};
-
-// === 7. XÓA TOUR (ADMIN/STAFF) ===
-export const deleteTour = async (token: string, id: number): Promise<void> => {
-    try {
-        await axios.delete(`http://localhost:8080/api/tours/${id}`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-    } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Không thể xóa tour');
+        console.error('Lỗi khi tải thống kê tour:', error);
+        throw new Error(error.response?.data?.message || 'Không thể tải thống kê tour');
     }
 };

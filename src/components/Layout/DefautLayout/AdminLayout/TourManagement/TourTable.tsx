@@ -28,6 +28,7 @@ interface TourTableProps {
     onEdit: (tour: Tour) => void;
     onDelete: (id: number) => Promise<void>;
     formatCurrency: (amount: number) => string;
+    loading?: boolean;
 }
 
 const TourTable: React.FC<TourTableProps> = ({

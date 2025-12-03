@@ -66,8 +66,8 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ isOpen, onClose, tour
                         <div className="absolute bottom-4 left-4 text-white">
                             <h1 className="text-3xl font-bold drop-shadow-lg">{tour.name}</h1>
                             <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium ${tour.status === 'ACTIVE'
-                                    ? 'bg-emerald-500/90 text-white'
-                                    : 'bg-gray-500/90 text-white'
+                                ? 'bg-emerald-500/90 text-white'
+                                : 'bg-gray-500/90 text-white'
                                 }`}>
                                 {tour.status === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm dừng'}
                             </span>

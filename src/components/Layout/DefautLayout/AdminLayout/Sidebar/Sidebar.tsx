@@ -10,7 +10,8 @@ import {
     FaNewspaper,
     FaSuitcaseRolling,
     FaShoppingCart,
-    FaSignOutAlt
+    FaSignOutAlt,
+    FaTags
 } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 import logoImg from "../../../../../assets/images/logo/logo.png";
@@ -25,6 +26,7 @@ interface SidebarProps {
 const menu = [
     { label: "Dashboard", icon: <MdDashboard className="w-5 h-5" />, path: "/admin" },
     { label: "Quản lý Tour", icon: <FaSuitcaseRolling className="w-5 h-5" />, path: "/admin/tours" },
+    { label: "Quản lý Loại Tour", icon: <FaTags className="w-5 h-5" />, path: "/admin/tour-categories" },
     { label: "Quản lý Đặt Tour", icon: <FaShoppingCart className="w-5 h-5" />, path: "/admin/bookings" },
     { label: "Quản lý Tài Khoản", icon: <FaUsers className="w-5 h-5" />, path: "/admin/users" },
     { label: "Quản lý Điểm Đến", icon: <FaGlobeAsia className="w-5 h-5" />, path: "/admin/destinations" },

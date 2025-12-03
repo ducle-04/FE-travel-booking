@@ -49,7 +49,7 @@ const axiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    withCredentials: true, // BẮT BUỘC: cho Spring Security nhận JWT từ cookie/localStorage
+    withCredentials: true,
 });
 
 axiosInstance.interceptors.request.use(config => {

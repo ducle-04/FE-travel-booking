@@ -1,489 +1,415 @@
-import { useState } from 'react';
-import { Search, MoreVertical, ChevronLeft, ChevronRight, TrendingUp, DollarSign, AlertCircle, ArrowUpRight } from 'lucide-react';
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import React, { useState, useEffect } from 'react';
+import {
+    Search,
+    Download,
+    Calendar,
+    TrendingUp,
+    MapPin,
+    Users,
+    DollarSign,
+    FileText,
+} from 'lucide-react';
+import {
+    BarChart,
+    Bar,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+} from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
+import axios from 'axios';
 
-type HotelType = 'PLUS' | 'LUX' | 'PENTHOUSE';
+// ─────────────────────────────────────────────────────────────────────────────
+// Axios + Token (jwtToken từ cả 2 storage) – ĐÃ ĐÚNG NHƯ MÀY ĐƯA
+// ─────────────────────────────────────────────────────────────────────────────
+const API_BASE_URL = 'http://localhost:8080/api';
 
-const colors: Record<HotelType, string> = {
-    PLUS: 'bg-blue-500',
-    LUX: 'bg-orange-500',
-    PENTHOUSE: 'bg-pink-500'
-};
+const TOKEN = () => sessionStorage.getItem('jwtToken') || localStorage.getItem('jwtToken');
 
-const Dashboard = () => {
+const api = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 15000,
+    headers: { 'Content-Type': 'application/json' },
+    withCredentials: true,
+});
+
+api.interceptors.request.use(config => {
+    const token = TOKEN();
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+});
+
+api.interceptors.response.use(
+    res => res,
+    err => {
+        if (err.response?.status === 401) {
+            localStorage.removeItem('jwtToken');
+            sessionStorage.removeItem('jwtToken');
+            window.location.href = '/login';
+        }
+        return Promise.reject(err);
+    }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types + Dữ liệu mẫu (giữ nguyên đẹp như bản gốc)
+// ─────────────────────────────────────────────────────────────────────────────
+interface DashboardStats {
+    totalUsers: number;
+    totalCustomers: number;
+    totalStaff: number;
+    totalAdmins: number;
+    totalInactive: number;
+    newUsersToday: number;
+    totalDeleted: number;
+}
+
+const tourByMonth = [
+    { month: 'Th1', tours: 12 },
+    { month: 'Th2', tours: 19 },
+    { month: 'Th3', tours: 15 },
+    { month: 'Th4', tours: 28 },
+    { month: 'Th5', tours: 32 },
+    { month: 'Th6', tours: 45 },
+    { month: 'Th7', tours: 58 },
+    { month: 'Th8', tours: 61 },
+    { month: 'Th9', tours: 42 },
+    { month: 'Th10', tours: 35 },
+    { month: 'Th11', tours: 28 },
+    { month: 'Th12', tours: 40 },
+];
+
+const bookingByMonth = [
+    { month: 'Th1', bookings: 89 },
+    { month: 'Th2', bookings: 156 },
+    { month: 'Th3', bookings: 198 },
+    { month: 'Th4', bookings: 312 },
+    { month: 'Th5', bookings: 428 },
+    { month: 'Th6', bookings: 589 },
+    { month: 'Th7', bookings: 756 },
+    { month: 'Th8', bookings: 812 },
+    { month: 'Th9', bookings: 634 },
+    { month: 'Th10', bookings: 512 },
+    { month: 'Th11', bookings: 398 },
+    { month: 'Th12', bookings: 720 },
+];
+
+const regionData = [
+    { name: 'Miền Bắc', value: 38, color: '#3b82f6' },
+    { name: 'Miền Trung', value: 18, color: '#f59e0b' },
+    { name: 'Miền Nam', value: 12, color: '#10b981' },
+];
+
+const topTours = [
+    { id: 1, name: 'Hạ Long - Vịnh Hạ Long 2N1Đ', bookings: 892, revenue: '2.1 tỷ' },
+    { id: 2, name: 'Phú Quốc - Paradise Island 4N3Đ', bookings: 756, revenue: '1.8 tỷ' },
+    { id: 3, name: 'Sapa - Fansipan Legend 3N2Đ', bookings: 681, revenue: '1.4 tỷ' },
+    { id: 4, name: 'Đà Nẵng - Hội An - Bà Nà 4N3Đ', bookings: 592, revenue: '1.2 tỷ' },
+    { id: 5, name: 'Ninh Bình - Tràng An - Bái Đính', bookings: 489, revenue: '980 triệu' },
+];
+
+const recentBookings = [
+    { id: 'DH240589', customer: 'Nguyễn Văn An', tour: 'Hạ Long 2N1Đ', date: '25/11/2025', status: 'Đã xác nhận', color: 'text-green-600 bg-green-100' },
+    { id: 'DH240588', customer: 'Trần Thị Mai', tour: 'Phú Quốc 4N3Đ', date: '25/11/2025', status: 'Chờ thanh toán', color: 'text-yellow-600 bg-yellow-100' },
+    { id: 'DH240587', customer: 'Lê Minh Tuấn', tour: 'Sapa 3N2Đ', date: '24/11/2025', status: 'Đã thanh toán', color: 'text-blue-600 bg-blue-100' },
+    { id: 'DH240586', customer: 'Phạm Hồng Nhung', tour: 'Đà Nẵng 4N3Đ', date: '24/11/2025', status: 'Đã hủy', color: 'text-red-600 bg-red-100' },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Component chính
+// ─────────────────────────────────────────────────────────────────────────────
+const Dashboard: React.FC = () => {
     const { theme } = useTheme();
-    const [currentPage, setCurrentPage] = useState(1);
-    const [selectedMonth, setSelectedMonth] = useState(10);
-    const [selectedYear, setSelectedYear] = useState(2025);
-    const [selectedDate, setSelectedDate] = useState(5);
 
-    const expenseData = [
-        { month: 'Jan', value: 2000 },
-        { month: 'Feb', value: 1800 },
-        { month: 'Mar', value: 2200 },
-        { month: 'Apr', value: 1600 },
-        { month: 'May', value: 1400 },
-        { month: 'Jun', value: 1900 },
-        { month: 'Jul', value: 2100 }
-    ];
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [chartData7Days, setChartData7Days] = useState<{ date: string; count: number }[]>([]);
+    const [loadingStats, setLoadingStats] = useState(true);
+    const [loadingChart, setLoadingChart] = useState(true);
 
-    const travelData = [
-        {
-            id: 1,
-            name: 'Glacier National Park',
-            location: 'Argentina',
-            nights: '11 Night',
-            checkIn: '11 May 2023',
-            checkOut: '17 May 2023',
-            people: 4,
-            price: '$445',
-            image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop'
-        },
-        {
-            id: 2,
-            name: 'Emerald Bay Inn.',
-            location: 'Indonesia',
-            nights: '11 Night',
-            checkIn: '03 Aug 2023',
-            checkOut: '12 Aug 2023',
-            people: 5,
-            price: '$455',
-            image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop'
-        },
-        {
-            id: 3,
-            name: 'Great Barrier Reef',
-            location: 'South Africa',
-            nights: '8 Night',
-            checkIn: '01 Dec 2022',
-            checkOut: '13 Dec 2022',
-            people: 3,
-            price: '$953',
-            image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=100&h=100&fit=crop'
-        },
-        {
-            id: 4,
-            name: 'Tahiti',
-            location: 'Indonesia',
-            nights: '12 Night',
-            checkIn: '22 Aug 2023',
-            checkOut: '01 Sep 2023',
-            people: 3,
-            price: '$29',
-            image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=100&h=100&fit=crop'
-        },
-        {
-            id: 5,
-            name: 'South Island',
-            location: 'Russia',
-            nights: '9 Night',
-            checkIn: '18 Sep 2023',
-            checkOut: '24 Sep 2023',
-            people: 4,
-            price: '$333',
-            image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=100&h=100&fit=crop'
-        },
-        {
-            id: 6,
-            name: 'South Island',
-            location: 'Czech Republic',
-            nights: '9 Night',
-            checkIn: '28 Oct 2023',
-            checkOut: '02 Nov 2023',
-            people: 3,
-            price: '$938',
-            image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop'
-        },
-        {
-            id: 7,
-            name: 'Great Barrier Reef',
-            location: 'Peru',
-            nights: '6 Night',
-            checkIn: '29 Mar 2023',
-            checkOut: '09 Apr 2023',
-            people: 4,
-            price: '$522',
-            image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=100&h=100&fit=crop'
-        },
-        {
-            id: 8,
-            name: 'Tahiti',
-            location: 'Morocco',
-            nights: '7 Night',
-            checkIn: '25 May 2023',
-            checkOut: '30 May 2023',
-            people: 3,
-            price: '$73',
-            image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=100&h=100&fit=crop'
-        },
-        {
-            id: 9,
-            name: 'Maui',
-            location: 'Azerbaijan',
-            nights: '7 Night',
-            checkIn: '28 Sep 2023',
-            checkOut: '03 Oct 2023',
-            people: 4,
-            price: '$7',
-            image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=100&h=100&fit=crop'
-        }
-    ];
+    // Load stats
+    useEffect(() => {
+        api.get<DashboardStats>('/admin/dashboard/stats')
+            .then(res => {
+                setStats(res.data);
+                setLoadingStats(false);
+            })
+            .catch(() => setLoadingStats(false));
+    }, []);
 
-    const hotels: { name: string; type: HotelType; beds: number; adults: number; price: string; rating: number; image: string }[] = [
-        { name: 'Emerald Bay Inn.', type: 'PLUS', beds: 3, adults: 3, price: '$100', rating: 4.9, image: '🏨' },
-        { name: 'Crowne Plaza.', type: 'LUX', beds: 2, adults: 4, price: '$80', rating: 4.8, image: '🏨' },
-        { name: 'Sunset Lodge.', type: 'PENTHOUSE', beds: 3, adults: 3, price: '$100', rating: 4.9, image: '🏨' },
-        { name: 'Hotel Elite.', type: 'PLUS', beds: 1, adults: 2, price: '$120', rating: 4.9, image: '🏨' },
-        { name: 'Hotel Bliss.', type: 'LUX', beds: 2, adults: 4, price: '$90', rating: 4.9, image: '🏨' }
-    ];
-
-    const getTypeColor = (type: HotelType) => {
-        return colors[type] || 'bg-gray-500';
-    };
-
-    const getDaysInMonth = (month: number, year: number) => {
-        return new Date(year, month, 0).getDate();
-    };
-
-    const getFirstDayOfMonth = (month: number, year: number) => {
-        return new Date(year, month - 1, 1).getDay();
-    };
-
-    const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
-    const firstDay = getFirstDayOfMonth(selectedMonth, selectedYear);
-
-    const calendarDays: (number | null)[] = [];
-    for (let i = 0; i < firstDay; i++) {
-        calendarDays.push(null);
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-        calendarDays.push(i);
-    }
-
-    const handlePrevMonth = () => {
-        if (selectedMonth === 1) {
-            setSelectedMonth(12);
-            setSelectedYear(selectedYear - 1);
-        } else {
-            setSelectedMonth(selectedMonth - 1);
-        }
-    };
-
-    const handleNextMonth = () => {
-        if (selectedMonth === 12) {
-            setSelectedMonth(1);
-            setSelectedYear(selectedYear + 1);
-        } else {
-            setSelectedMonth(selectedMonth + 1);
-        }
-    };
+    // Load chart 7 ngày (người dùng đăng ký)
+    useEffect(() => {
+        api.get<any[][]>('/admin/dashboard/chart/last-7-days')
+            .then(res => {
+                const formatted = res.data.map((item: any[]) => {
+                    const rawDate = item[0];
+                    let label = '';
+                    if (typeof rawDate === 'string') {
+                        const d = new Date(rawDate);
+                        const today = new Date();
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        label = d.toDateString() === today.toDateString() ? 'Hôm nay'
+                            : d.toDateString() === yesterday.toDateString() ? 'Hôm qua'
+                                : d.toLocaleDateString('vi-VN');
+                    } else {
+                        label = rawDate;
+                    }
+                    return { date: label, count: Number(item[1]) };
+                }).reverse();
+                setChartData7Days(formatted);
+                setLoadingChart(false);
+            })
+            .catch(() => setLoadingChart(false));
+    }, []);
 
     return (
-        <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-800'} p-6`}>
+        <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'} transition-colors duration-300`}>
             {/* Header */}
-            <div className="mb-8">
-                <div className="flex justify-between items-center">
-                    <div className="relative w-80">
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm tại đây..."
-                            className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark' ? 'border-gray-700 bg-gray-800 text-gray-100' : 'border-gray-300 bg-white text-gray-800'} focus:outline-none focus:border-blue-500`}
-                        />
-                        <Search className="absolute right-3 top-2.5 text-gray-400" size={20} />
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                {/* Total Booking Card */}
-                <div className={`group relative ${theme === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500'} rounded-xl p-5 text-white overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1`}>
-                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:blur-2xl transition-all duration-300"></div>
-                    <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <TrendingUp className="w-4 h-4 text-blue-100" />
-                                    <p className={`text-xs font-semibold tracking-wider ${theme === 'dark' ? 'text-gray-200' : 'text-blue-100'}`}>TỔNG ĐẶT CHỖ</p>
-                                </div>
-                                <h2 className="text-4xl font-bold tracking-tight">31,556</h2>
-                                <div className={`flex items-center gap-2 mt-3 text-sm ${theme === 'dark' ? 'text-gray-200' : 'text-blue-100'}`}>
-                                    <ArrowUpRight className="w-4 h-4" />
-                                    <span>Tăng 12% so với tháng trước</span>
-                                </div>
-                            </div>
-                            <button className={`bg-white/20 backdrop-blur-md hover:bg-white/30 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 border ${theme === 'dark' ? 'border-gray-700' : 'border-white/20'}`}>
-                                Xem báo cáo
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Total Revenue Card */}
-                <div className={`group relative ${theme === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-br from-orange-600 via-orange-500 to-rose-500'} rounded-xl p-5 text-white overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1`}>
-                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:blur-2xl transition-all duration-300"></div>
-                    <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <DollarSign className="w-4 h-4 text-orange-100" />
-                                    <p className={`text-xs font-semibold tracking-wider ${theme === 'dark' ? 'text-gray-200' : 'text-orange-100'}`}>TỔNG THU NHẬP</p>
-                                </div>
-                                <h2 className="text-4xl font-bold tracking-tight">$61,556</h2>
-                                <div className={`flex items-center gap-2 mt-3 text-sm ${theme === 'dark' ? 'text-gray-200' : 'text-orange-100'}`}>
-                                    <ArrowUpRight className="w-4 h-4" />
-                                    <span>Tăng 8% so với tháng trước</span>
-                                </div>
-                            </div>
-                            <button className={`bg-white/20 backdrop-blur-md hover:bg-white/30 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 border ${theme === 'dark' ? 'border-gray-700' : 'border-white/20'}`}>
-                                Xem báo cáo
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Total Debt Card */}
-                <div className={`group relative ${theme === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-br from-pink-600 via-pink-500 to-purple-500'} rounded-xl p-5 text-white overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1`}>
-                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:blur-2xl transition-all duration-300"></div>
-                    <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <AlertCircle className="w-4 h-4 text-pink-100" />
-                                    <p className={`text-xs font-semibold tracking-wider ${theme === 'dark' ? 'text-gray-200' : 'text-pink-100'}`}>TỔNG NỢ</p>
-                                </div>
-                                <h2 className="text-4xl font-bold tracking-tight">$12,556</h2>
-                                <div className={`flex items-center gap-2 mt-3 text-sm ${theme === 'dark' ? 'text-gray-200' : 'text-pink-100'}`}>
-                                    <ArrowUpRight className="w-4 h-4" />
-                                    <span>Giảm 3% so với tháng trước</span>
-                                </div>
-                            </div>
-                            <button className={`bg-white/20 backdrop-blur-md hover:bg-white/30 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 border ${theme === 'dark' ? 'border-gray-700' : 'border-white/20'}`}>
-                                Xem báo cáo
-                            </button>
+            <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
+                    <h1 className="text-2xl font-bold">Dashboard</h1>
+                    <div className="flex items-center gap-4">
+                        <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition">
+                            <Download size={16} />
+                            Xuất báo cáo
+                        </button>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm tour, khách hàng..."
+                                className={`pl-10 pr-4 py-2.5 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'} focus:outline-none focus:border-blue-500 w-80`}
+                            />
+                            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Travel List */}
-                <div className="lg:col-span-3">
-                    <div className={`rounded-2xl overflow-hidden border ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <tbody>
-                                    {travelData.map((travel) => (
-                                        <tr key={travel.id} className={`border-b ${theme === 'dark' ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'} transition`}>
-                                            <td className="px-6 py-4">
-                                                <input type="checkbox" className={`w-4 h-4 rounded border ${theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-white'}`} />
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="w-16 h-16 rounded-lg overflow-hidden">
-                                                    <img src={travel.image} alt={travel.name} className="w-full h-full object-cover" />
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <p className={`font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>{travel.name}</p>
-                                                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{travel.location}</p>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex gap-1">
-                                                    {[...Array(travel.people)].map((_, i) => (
-                                                        <span key={i} className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-lg`}>👥</span>
-                                                    ))}
-                                                </div>
-                                            </td>
-                                            <td className={`px-6 py-4 font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>{travel.price}</td>
-                                            <td className="px-6 py-4 text-center">
-                                                <MoreVertical size={18} className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'} cursor-pointer`} />
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+            <div className="max-w-7xl mx-auto px-6 py-8">
 
-                        {/* Pagination */}
-                        <div className={`flex items-center justify-between px-6 py-4 border-t ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                            <button className={`${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'} p-2`}>
-                                <ChevronLeft size={18} />
-                            </button>
-                            <div className="flex gap-2">
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((page) => (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`w-8 h-8 rounded flex items-center justify-center font-semibold transition text-sm ${currentPage === page
-                                            ? theme === 'dark' ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'
-                                            : theme === 'dark' ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                            }`}
-                                    >
-                                        {page}
-                                    </button>
-                                ))}
+                {/* KPIs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                    {[
+                        { label: 'Tổng số tour', value: '152', icon: MapPin, bg: 'bg-blue-600', change: '+12%', changeColor: 'bg-green-500' },
+                        { label: 'Điểm đến', value: '68', icon: MapPin, bg: 'bg-emerald-600', change: '+8', changeColor: 'bg-green-500' },
+                        { label: 'Lượt đặt tour (2025)', value: '4,325', icon: Calendar, bg: 'bg-purple-600', change: '+28%', changeColor: 'bg-green-500' },
+                        { label: 'Tổng doanh thu', value: '3.2 tỷ', icon: DollarSign, bg: 'bg-orange-600', change: '+42%', changeColor: 'bg-green-500' },
+                        {
+                            label: 'Tài khoản người dùng',
+                            value: loadingStats ? '...' : (stats?.totalUsers || 0).toLocaleString('vi-VN'),
+                            icon: Users,
+                            bg: 'bg-indigo-600',
+                            change: stats?.newUsersToday ? `+${stats.newUsersToday}` : '0',
+                            changeColor: stats?.newUsersToday ? 'bg-green-500' : 'bg-gray-500'
+                        },
+                    ].map((item, idx) => (
+                        <div key={idx} className={`${item.bg} rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden group`}>
+                            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition"></div>
+                            <div className="relative z-10">
+                                <div className="flex items-center justify-between mb-4">
+                                    <item.icon size={32} className="opacity-90" />
+                                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${item.changeColor} text-white shadow`}>
+                                        {item.change}
+                                    </span>
+                                </div>
+                                <p className="text-3xl font-bold mb-1">{item.value}</p>
+                                <p className="text-sm opacity-95">{item.label}</p>
                             </div>
-                            <button className={`${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'} p-2`}>
-                                <ChevronRight size={18} />
-                            </button>
-                            <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} ml-4`}>1 - 10 of 100 entries</div>
+                            <div className="absolute -right-6 -top-6 w-32 h-32 bg-white rounded-full opacity-10"></div>
                         </div>
-                    </div>
+                    ))}
                 </div>
 
-                {/* Analytics Sidebar */}
-                <div className="space-y-4">
-                    {/* Analytics Section */}
-                    <div className={`rounded-2xl p-6 border ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Phân tích</h3>
-                            <MoreVertical size={18} className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'} cursor-pointer`} />
+                {/* Phân loại tài khoản */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    {[
+                        { label: 'Khách hàng', value: stats?.totalCustomers, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30' },
+                        { label: 'Nhân viên', value: stats?.totalStaff, color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+                        { label: 'Admin', value: stats?.totalAdmins, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/30' },
+                    ].map((item) => (
+                        <div key={item.label} className={`px-8 py-5 rounded-2xl ${item.bg} border border-gray-200 dark:border-gray-700 min-w-[180px] text-center`}>
+                            <p className="text-3xl font-bold">{loadingStats ? '...' : (item.value || 0).toLocaleString('vi-VN')}</p>
+                            <p className={`text-sm font-medium mt-1 ${item.color}`}>{item.label}</p>
                         </div>
+                    ))}
+                </div>
 
-                        {/* Custom Donut Chart */}
-                        <div className="flex flex-col items-center mb-4">
-                            <svg width="120" height="120" viewBox="0 0 120 120" className="mb-4">
-                                <circle cx="60" cy="60" r="55" fill="none" stroke={`${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`} strokeWidth="3" opacity="0.5" />
-                                <circle cx="60" cy="60" r="48" fill="none" stroke={`${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`} strokeWidth="3" opacity="0.3" />
-                                <circle cx="60" cy="60" r="42" fill="none" stroke="#22c55e" strokeWidth="8" strokeDasharray="98.96 310.88" strokeLinecap="round" transform="rotate(-90 60 60)" />
-                                <circle cx="60" cy="60" r="42" fill="none" stroke="#ec4899" strokeWidth="8" strokeDasharray="62.83 310.88" strokeLinecap="round" transform="rotate(44 60 60)" />
-                                <circle cx="60" cy="60" r="42" fill="none" stroke="#a855f7" strokeWidth="8" strokeDasharray="62.83 310.88" strokeLinecap="round" transform="rotate(117 60 60)" />
-                                <text x="60" y="55" textAnchor="middle" fontSize="12" fontWeight="bold" fill={`${theme === 'dark' ? '#9ca3af' : '#6b7280'}`}>Tổng</text>
-                                <text x="60" y="72" textAnchor="middle" fontSize="20" fontWeight="bold" fill={`${theme === 'dark' ? '#e5e7eb' : '#1f2937'}`}>166</text>
-                            </svg>
-                            <p className={`text-center text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Phân tích du lịch được tính</p>
-                            <p className={`text-center text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>dựa trên số lượng chuyến du lịch</p>
-                        </div>
-                    </div>
-
-                    {/* Expense Section */}
-                    <div className={`rounded-2xl p-6 border ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h4 className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Chi phí</h4>
-                                <p className={`text-3xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>$34.6k</p>
-                            </div>
-                            <MoreVertical size={18} className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'} cursor-pointer`} />
-                        </div>
-                        <ResponsiveContainer width="100%" height={180}>
-                            <AreaChart
-                                data={expenseData}
-                                margin={{ top: 10, right: 10, left: -20, bottom: 10 }}
-                            >
-                                <defs>
-                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="0" stroke={`${theme === 'dark' ? '#4b5563' : '#f0f0f0'}`} vertical={false} />
-                                <XAxis dataKey="month" stroke={`${theme === 'dark' ? '#9ca3af' : '#9ca3af'}`} style={{ fontSize: '12px' }} />
-                                <YAxis stroke={`${theme === 'dark' ? '#9ca3af' : '#9ca3af'}`} style={{ fontSize: '12px' }} />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: theme === 'dark' ? '#1f2937' : '#f3f4f6',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        padding: '8px 12px',
-                                        color: theme === 'dark' ? '#e5e7eb' : '#1f2937'
-                                    }}
-                                    formatter={(value) => [`Chi phí: ${value}`, '']}
-                                    labelFormatter={(label) => label}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="value"
-                                    stroke="#3b82f6"
-                                    strokeWidth={2}
-                                    fill="url(#colorValue)"
-                                    dot={false}
-                                    isAnimationActive={false}
-                                />
-                            </AreaChart>
+                {/* 2 biểu đồ: Tour theo tháng + Đặt tour theo tháng (bản gốc) + 7 ngày thật */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    {/* Tour tạo theo tháng */}
+                    <div className={`rounded-2xl p-6 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <h3 className="text-lg font-semibold mb-4">Số tour được tạo theo tháng</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={tourByMonth}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+                                <XAxis dataKey="month" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                                <YAxis stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                                <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '8px' }} />
+                                <Bar dataKey="tours" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
 
-                    {/* Calendar Section */}
-                    <div className={`rounded-2xl p-6 border ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                        <div className="flex justify-between items-center mb-4">
-                            <button onClick={handlePrevMonth} className={`${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'} p-2`}>
-                                ‹
-                            </button>
-                            <div className="flex items-center gap-2">
-                                <select
-                                    value={selectedMonth}
-                                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                                    className={`text-sm ${theme === 'dark' ? 'text-gray-300 bg-gray-800' : 'text-gray-600 bg-transparent'} border-0 focus:outline-none cursor-pointer`}
-                                >
-                                    <option value={1}>Tháng 1</option>
-                                    <option value={2}>Tháng 2</option>
-                                    <option value={3}>Tháng 3</option>
-                                    <option value={4}>Tháng 4</option>
-                                    <option value={5}>Tháng 5</option>
-                                    <option value={6}>Tháng 6</option>
-                                    <option value={7}>Tháng 7</option>
-                                    <option value={8}>Tháng 8</option>
-                                    <option value={9}>Tháng 9</option>
-                                    <option value={10}>Tháng 10</option>
-                                    <option value={11}>Tháng 11</option>
-                                    <option value={12}>Tháng 12</option>
-                                </select>
-                            </div>
-                            <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>{selectedYear}</span>
-                            <button onClick={handleNextMonth} className={`${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'} p-2`}>
-                                ›
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-7 gap-1 mb-2">
-                            {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map(day => (
-                                <div key={day} className={`text-center text-xs font-semibold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-500'} py-1`}>
-                                    {day}
+                    {/* ĐẶT TOUR THEO THÁNG – BẢN GỐC ĐÃ ĐƯỢC THÊM LẠI */}
+                    <div className={`rounded-2xl p-6 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <h3 className="text-lg font-semibold mb-4">Lượt đặt tour theo tháng (2025)</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={bookingByMonth}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+                                <XAxis dataKey="month" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                                <YAxis stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                                <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '8px' }} />
+                                <Line type="monotone" dataKey="bookings" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 6 }} activeDot={{ r: 8 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Biểu đồ 7 ngày gần nhất (dữ liệu thật) */}
+                <div className={`rounded-2xl p-6 mb-8 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <h3 className="text-lg font-semibold mb-4">Người dùng đăng ký 7 ngày gần nhất</h3>
+                    {loadingChart ? (
+                        <div className="h-72 flex items-center justify-center text-gray-500">Đang tải...</div>
+                    ) : chartData7Days.length === 0 ? (
+                        <div className="h-72 flex items-center justify-center text-gray-500">Chưa có dữ liệu</div>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={chartData7Days}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+                                <XAxis dataKey="date" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                                <YAxis stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                                <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '8px' }} />
+                                <Line type="monotone" dataKey="count" stroke="#8b5cf6" strokeWidth={3} dot={{ fill: '#8b5cf6', r: 6 }} activeDot={{ r: 8 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+
+                {/* Pie + Top 5 + Recent Bookings – giữ nguyên đẹp */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className={`lg:col-span-4 rounded-2xl p-6 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <h3 className="text-lg font-semibold mb-6">Phân bố điểm đến theo khu vực</h3>
+                        <ResponsiveContainer width="100%" height={260}>
+                            <PieChart>
+                                <Pie data={regionData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value">
+                                    {regionData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <div className="mt-4 space-y-3">
+                            {regionData.map((item) => (
+                                <div key={item.name} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-4 h-4 rounded" style={{ backgroundColor: item.color }}></div>
+                                        <span className="text-sm">{item.name}</span>
+                                    </div>
+                                    <span className="font-semibold">{item.value} điểm</span>
                                 </div>
-                            ))}
-                        </div>
-                        <div className="grid grid-cols-7 gap-1">
-                            {calendarDays.map((day, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => day && setSelectedDate(day)}
-                                    className={`py-2 rounded text-xs font-medium transition ${day === null
-                                        ? theme === 'dark' ? 'text-gray-600' : 'text-gray-300'
-                                        : day === selectedDate
-                                            ? theme === 'dark' ? 'bg-blue-600 text-white font-bold' : 'bg-blue-500 text-white font-bold'
-                                            : theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    {day}
-                                </button>
                             ))}
                         </div>
                     </div>
-                </div>
-            </div>
 
-            {/* Top Hotels Section */}
-            <div className="mt-8">
-                <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'} mb-6`}>Khách sạn hàng đầu</h2>
-                <div className={`rounded-3xl p-8 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-50'}`}>
-                    <div className="flex gap-6 overflow-x-auto pb-4">
-                        {hotels.map((hotel) => (
-                            <div key={hotel.name} className={`flex-shrink-0 w-80 ${theme === 'dark' ? 'bg-gray-700' : 'bg-white'} rounded-3xl overflow-hidden`}>
-                                <div className="h-48 bg-cover bg-center" style={{ backgroundImage: `url("https://images.unsplash.com/photo-${hotel.name === 'Emerald Bay Inn.' ? '1566456162354-f8ac002112b2' : hotel.name === 'Crowne Plaza.' ? '1559827260-dc66d52bef19' : hotel.name === 'Sunset Lodge.' ? '1522708323590-d24dbb6b0267' : hotel.name === 'Hotel Elite.' ? '1631049307264-da0ec9d70304' : '1578821656276-f8ac002112b2'}?w=400&h=300&fit=crop")` }}>
-                                    <div className="h-full w-full bg-gradient-to-b from-transparent to-black/20"></div>
-                                </div>
-                                <div className="p-5">
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <span className={`${getTypeColor(hotel.type)} text-white text-xs font-bold px-3 py-1.5 rounded-full`}>{hotel.type}</span>
-                                        <span className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} font-medium`}>{hotel.beds} BEDS {hotel.adults} ADULT</span>
-                                    </div>
-                                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'} mb-3`}>{hotel.name}</h3>
-                                    <div className="flex justify-between items-center">
-                                        <span className={`font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>{hotel.price}<span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} font-normal`}>/day</span></span>
-                                        <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>⭐ {hotel.rating}</span>
-                                    </div>
+                    <div className={`lg:col-span-8 rounded-2xl p-6 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                    <TrendingUp size={20} className="text-green-500" />
+                                    Top 5 tour được đặt nhiều nhất
+                                </h3>
+                                <div className="space-y-3">
+                                    {topTours.map((tour, idx) => (
+                                        <div key={tour.id} className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} flex items-center justify-between`}>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-2xl font-bold text-gray-400">#{idx + 1}</span>
+                                                <div>
+                                                    <p className="font-medium">{tour.name}</p>
+                                                    <p className="text-sm text-gray-500">{tour.bookings} lượt đặt</p>
+                                                </div>
+                                            </div>
+                                            <span className="font-bold text-green-600">{tour.revenue}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                        ))}
+
+                            <div>
+                                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                    <MapPin size={20} className="text-orange-500" />
+                                    Top 5 điểm đến nổi bật
+                                </h3>
+                                <div className="space-y-3">
+                                    {[
+                                        { rank: 1, name: 'Vịnh Hạ Long', province: 'Quảng Ninh', views: '182.4K', tours: 42 },
+                                        { rank: 2, name: 'Phú Quốc', province: 'Kiên Giang', views: '156.8K', tours: 38 },
+                                        { rank: 3, name: 'Sapa', province: 'Lào Cai', views: '142.3K', tours: 35 },
+                                        { rank: 4, name: 'Đà Nẵng', province: 'Đà Nẵng', views: '138.7K', tours: 41 },
+                                        { rank: 5, name: 'Hội An', province: 'Quảng Nam', views: '119.5K', tours: 28 },
+                                    ].map((dest) => (
+                                        <div key={dest.rank} className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} flex items-center justify-between`}>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 text-white font-bold text-lg">
+                                                    {dest.rank}
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-base">{dest.name}</p>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">{dest.province}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">{dest.views} lượt xem</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">{dest.tours} tour</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bảng đơn đặt tour gần nhất */}
+                <div className={`mt-8 rounded-2xl p-6 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
+                        <FileText size={20} className="text-blue-500" />
+                        Đơn đặt tour gần nhất
+                    </h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className={`border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">Mã đơn</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">Khách hàng</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">Tour</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">Ngày đặt</th>
+                                    <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {recentBookings.map((booking) => (
+                                    <tr key={booking.id} className={`border-b ${theme === 'dark' ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'} transition`}>
+                                        <td className="py-4 px-4 font-mono font-semibold text-blue-600">#{booking.id}</td>
+                                        <td className="py-4 px-4 font-medium">{booking.customer}</td>
+                                        <td className="py-4 px-4 text-gray-600 dark:text-gray-300">{booking.tour}</td>
+                                        <td className="py-4 px-4 text-gray-500">{booking.date}</td>
+                                        <td className="py-4 px-4 text-center">
+                                            <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${booking.color}`}>
+                                                {booking.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
