@@ -20,6 +20,7 @@ import TourDetailUserPage from "./pages/User/TourDetailUserPage";
 import BookingManagement from "./pages/Admin/BookingManagement";
 import MyBookingsPage from "./pages/User/MyBookingsPage";
 import AdminBlogManagement from "./pages/Admin/AdminBlogManagement";
+import HotelManagement from "./pages/Admin/HotelManagement";
 
 const PublicPage = [
     { path: "/", component: Home, layout: UserLayout },
@@ -40,6 +41,7 @@ const PublicPage = [
     { path: "/admin/tours", component: TourManagement, layout: AdminLayout },
     { path: "/admin/tours/:id", component: TourDetailPage, layout: AdminLayout },
     { path: "/admin/tour-categories", component: TourCategoryManagement, layout: AdminLayout },
+    { path: "/admin/hotels", component: HotelManagement, layout: AdminLayout },
     { path: "/admin/bookings", component: BookingManagement, layout: AdminLayout },
     { path: "/admin/blogs", component: AdminBlogManagement, layout: AdminLayout },
     { path: "/my-tours", component: MyBookingsPage, layout: UserLayout },
