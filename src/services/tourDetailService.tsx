@@ -28,6 +28,13 @@ export interface TourDetail {
     videos: string[];
 }
 
+export interface StartDateAvailability {
+    date: string;
+    formattedDate: string;
+    remainingSeats: number;
+    available: boolean;
+}
+
 // GET: Lấy tour + chi tiết (BE trả tourDetail nếu có)
 export const fetchTourDetail = async (tourId: string): Promise<Tour & { tourDetail: TourDetail | null }> => {
     try {
@@ -101,3 +108,13 @@ export const deleteVideo = async (token: string, tourId: string, videoUrl: strin
         headers: { Authorization: `Bearer ${token}` },
     });
 };
+
+export const fetchStartDateAvailability = async (tourId: string): Promise<StartDateAvailability[]> => {
+    try {
+        const response = await axios.get(`http://localhost:8080/api/tours/${tourId}/start-dates`);
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Không thể tải ngày khởi hành");
+    }
+};
+

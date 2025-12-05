@@ -181,7 +181,7 @@ const LoginPage: React.FC = () => {
                     {/* Username */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Tên đăng nhập
+                            Tên đăng nhập hoặc Email
                         </label>
                         <input
                             type="text"
