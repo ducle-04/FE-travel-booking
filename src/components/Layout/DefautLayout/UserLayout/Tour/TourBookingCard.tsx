@@ -304,16 +304,17 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
                     <button onClick={handleBooking}
                         disabled={submitting || !date || remainingSeats === 0 || people < 1}
                         className={`w-full text-white py-5 rounded-lg font-bold text-lg transition transform hover:scale-105 ${paymentMethod === 'MOMO'
-                                ? 'bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700'
-                                : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
+                            ? 'bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700'
+                            : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
                             } disabled:opacity-60 disabled:cursor-not-allowed`}>
                         {submitting ? 'Đang xử lý...' : paymentMethod === 'MOMO' ? 'THANH TOÁN QUA MOMO' : 'ĐẶT TOUR NGAY'}
                     </button>
 
                     {!token && !showGuestForm && (
                         <p className="text-center text-sm text-gray-600 -mt-3">
-                            Chưa đăng nhập? Vẫn đặt được tour bình thường!
+                            <span className="text-red-600 font-semibold">Chưa đăng nhập?</span> Vẫn đặt được tour bình thường!
                         </p>
+
                     )}
 
                     <div className="flex justify-between items-center pt-4 border-t">

@@ -1,184 +1,120 @@
-import React, { useState } from 'react';
+// src/pages/User/BlogListPage.tsx
+import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import {
-    Search, Calendar, Eye, MessageCircle, Grid, List, Plus, X,
-    Upload, Image as ImageIcon, Send
+    Search, Grid, List, Plus, X, Upload, Image as Send
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-// Types
-interface BlogAuthor {
-    name: string;
-    avatar: string;
-}
-
-interface Blog {
-    id: number;
-    title: string;
-    content: string;
-    thumbnail: string;
-    author: BlogAuthor;
-    createdAt: string;
-    views: number;
-    commentCount: number;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-}
-
-// Mock data gốc
-const mockBlogs: Blog[] = [
-    {
-        id: 1,
-        title: "Khám phá vẻ đẹp Vịnh Hạ Long - Di sản thế giới UNESCO",
-        content: "Vịnh Hạ Long là một trong những kỳ quan thiên nhiên tuyệt đẹp của Việt Nam với hàng nghìn hòn đảo đá vôi nhấp nhô trên mặt nước...",
-        thumbnail: "https://images.unsplash.com/photo-1528127269322-539801943592?w=800",
-        author: { name: "Nguyễn Văn A", avatar: "https://i.pravatar.cc/150?img=1" },
-        createdAt: "2024-11-15T10:00:00",
-        views: 1234,
-        commentCount: 15,
-        status: 'APPROVED'
-    },
-    {
-        id: 2,
-        title: "Sapa mùa lúa chín - Thiên đường nơi hạ giới",
-        content: "Sapa trong mùa lúa chín là một bức tranh thiên nhiên tuyệt đẹp với những thửa ruộng bậc thang vàng óng...",
-        thumbnail: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800",
-        author: { name: "Trần Thị B", avatar: "https://i.pravatar.cc/150?img=2" },
-        createdAt: "2024-11-14T15:30:00",
-        views: 856,
-        commentCount: 8,
-        status: 'APPROVED'
-    },
-    {
-        id: 3,
-        title: "Phố cổ Hội An - Nơi lưu giữ hồn Việt qua thời gian",
-        content: "Hội An là thành phố cổ kính với những con phố rợp bóng cây và hàng trăm ngôi nhà cổ mang đậm dấu ấn lịch sử...",
-        thumbnail: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800",
-        author: { name: "Lê Văn C", avatar: "https://i.pravatar.cc/150?img=3" },
-        createdAt: "2024-11-13T09:15:00",
-        views: 2105,
-        commentCount: 23,
-        status: 'APPROVED'
-    },
-    {
-        id: 4,
-        title: "Đà Lạt - Thành phố ngàn hoa mộng mơ",
-        content: "Đà Lạt luôn là điểm đến yêu thích với khí hậu mát mẻ quanh năm và những vườn hoa rực rỡ sắc màu...",
-        thumbnail: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?w=800",
-        author: { name: "Phạm Thị D", avatar: "https://i.pravatar.cc/150?img=4" },
-        createdAt: "2024-11-12T14:20:00",
-        views: 1567,
-        commentCount: 12,
-        status: 'APPROVED'
-    },
-    {
-        id: 5,
-        title: "Phú Quốc - Đảo ngọc thiên đường biển xanh",
-        content: "Phú Quốc không chỉ nổi tiếng với những bãi biển tuyệt đẹp mà còn có ẩm thực phong phú và con người thân thiện...",
-        thumbnail: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800",
-        author: { name: "Hoàng Văn E", avatar: "https://i.pravatar.cc/150?img=5" },
-        createdAt: "2024-11-11T11:00:00",
-        views: 1890,
-        commentCount: 18,
-        status: 'APPROVED'
-    },
-    {
-        id: 6,
-        title: "Ninh Bình - Vịnh Hạ Long trên cạn",
-        content: "Ninh Bình với danh lam thắng cảnh Tràng An, Tam Cốc - Bích Động là điểm đến không thể bỏ lỡ...",
-        thumbnail: "https://images.unsplash.com/photo-1601981698105-cbbf46d317c8?w=800",
-        author: { name: "Võ Thị F", avatar: "https://i.pravatar.cc/150?img=6" },
-        createdAt: "2024-11-10T08:45:00",
-        views: 945,
-        commentCount: 7,
-        status: 'APPROVED'
-    }
-];
+import {
+    fetchPublishedBlogs,
+    createBlog
+} from '../../services/blogService';
+import type { BlogSummaryDTO } from '../../types/blogTypes';
 
 export default function BlogListPage() {
     const navigate = useNavigate();
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-    const [sortBy, setSortBy] = useState('newest');
     const [searchKeyword, setSearchKeyword] = useState('');
-    const [blogs, setBlogs] = useState<Blog[]>(mockBlogs);
-    const [loading, setLoading] = useState(false);
-    const [galleryImages, setGalleryImages] = useState<string[]>([]); // ← thêm dòng này thôi
+    const [blogs, setBlogs] = useState<BlogSummaryDTO[]>([]);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(true);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [newContent, setNewContent] = useState('');
-    const [newThumbnail, setNewThumbnail] = useState('');
+    const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+    const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+    const [thumbnailPreview, setThumbnailPreview] = useState('');
+    const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+
+    // Load blogs
+    useEffect(() => {
+        loadBlogs();
+    }, [page]);
+
+    const loadBlogs = async () => {
+        setLoading(true);
+        try {
+            const res = await fetchPublishedBlogs(page, 10);
+            let filtered = res.content;
+
+            if (searchKeyword.trim()) {
+                const term = searchKeyword.toLowerCase();
+                filtered = filtered.filter((b: BlogSummaryDTO) =>
+                    b.title.toLowerCase().includes(term) ||
+                    b.shortDescription.toLowerCase().includes(term)
+                );
+            }
+
+            setBlogs(filtered);
+            setTotalPages(res.totalPages || 1);
+        } catch (err) {
+            toast.error('Không thể tải danh sách bài viết');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = () => loadBlogs();
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return new Date(dateString).toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
     };
 
-    const handleSearch = () => {
-        setLoading(true);
-        setTimeout(() => {
-            const filtered = searchKeyword.trim()
-                ? mockBlogs.filter(blog =>
-                    blog.title.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-                    blog.content.toLowerCase().includes(searchKeyword.toLowerCase())
-                )
-                : mockBlogs;
-            setBlogs(filtered);
+    const handleCreateBlog = async () => {
+        if (!newTitle.trim() || !newContent.trim()) {
+            toast.error('Vui lòng nhập tiêu đề và nội dung');
+            return;
+        }
+        if (!thumbnailFile) {
+            toast.error('Vui lòng chọn ảnh bìa');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await createBlog(
+                { title: newTitle, content: newContent },
+                thumbnailFile,
+                galleryFiles
+            );
+
+            toast.success('Gửi bài viết thành công! Đang chờ duyệt');
+            setIsModalOpen(false);
+            resetModal();
+            loadBlogs();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Đăng bài thất bại');
+        } finally {
             setLoading(false);
-        }, 500);
+        }
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') handleSearch();
-    };
-
-    const sortedBlogs = [...blogs].sort((a, b) => {
-        if (sortBy === 'views') return b.views - a.views;
-        if (sortBy === 'comments') return b.commentCount - a.commentCount;
-        if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
-    const handleBlogClick = (id: number) => {
-        navigate(`/blog/${id}`);
-    };
-
-    const handleCreateBlog = () => {
-        if (!newTitle.trim() || !newContent.trim()) return;
-
-        const newBlog: Blog = {
-            id: Date.now(),
-            title: newTitle,
-            content: newContent,
-            thumbnail: newThumbnail || `https://picsum.photos/800/600?random=${Date.now()}`,
-            author: { name: "Bạn", avatar: "https://i.pravatar.cc/150?u=user" },
-            createdAt: new Date().toISOString(),
-            views: 0,
-            commentCount: 0,
-            status: 'PENDING'
-        };
-
-        setBlogs([newBlog, ...blogs]);
-        setIsModalOpen(false);
+    const resetModal = () => {
         setNewTitle('');
         setNewContent('');
-        setNewThumbnail('');
+        setThumbnailFile(null);
+        setGalleryFiles([]);
+        setThumbnailPreview('');
+        setGalleryPreviews([]);
     };
 
     return (
         <>
             <div className="min-h-screen bg-gray-50">
-                {/* Hero Header */}
+                {/* Hero */}
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 py-48 px-4 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                     <div className="max-w-4xl mx-auto text-center relative z-10">
-                        <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
-                            Travel Blog
-                        </h1>
-                        <p className="text-xl text-cyan-600 mb-10">
-                            Khám phá và chia sẻ những hành trình tuyệt vời nhất
-                        </p>
+                        <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6">Travel Blog</h1>
+                        <p className="text-xl text-cyan-600 mb-10">Khám phá và chia sẻ những hành trình tuyệt vời</p>
 
-                        {/* Search Bar */}
                         <div className="max-w-2xl mx-auto">
                             <div className="relative flex items-center gap-3">
                                 <div className="relative flex-1">
@@ -188,13 +124,13 @@ export default function BlogListPage() {
                                         placeholder="Tìm kiếm bài viết du lịch..."
                                         value={searchKeyword}
                                         onChange={(e) => setSearchKeyword(e.target.value)}
-                                        onKeyPress={handleKeyPress}
-                                        className="w-full pl-12 pr-4 py-4 rounded-full border-2 border-gray-200 focus:border-cyan-500 focus:outline-none transition text-gray-800 text-lg"
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                        className="w-full pl-12 pr-4 py-4 rounded-full border-2 border-gray-200 focus:border-cyan-500 focus:outline-none text-lg"
                                     />
                                 </div>
                                 <button
                                     onClick={handleSearch}
-                                    className="bg-cyan-600 text-white px-8 py-4 rounded-full hover:bg-cyan-700 transition font-medium shadow-lg"
+                                    className="bg-cyan-600 text-white px-8 py-4 rounded-full hover:bg-cyan-700 font-medium shadow-lg"
                                 >
                                     Tìm kiếm
                                 </button>
@@ -205,26 +141,13 @@ export default function BlogListPage() {
 
                 {/* Main Content */}
                 <div className="container mx-auto px-4 py-12 max-w-7xl">
-                    {/* Toolbar */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                             <div>
-                                <h2 className="text-3xl font-bold text-gray-900">{sortedBlogs.length} Bài viết</h2>
-                                <p className="text-gray-600 mt-1">Những câu chuyện du lịch đang chờ bạn khám phá</p>
+                                <h2 className="text-3xl font-bold text-gray-900">{blogs.length} Bài viết</h2>
+                                <p className="text-gray-600 mt-1">Khám phá những câu chuyện du lịch mới nhất</p>
                             </div>
-
                             <div className="flex items-center gap-4">
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                                >
-                                    <option value="newest">Mới nhất</option>
-                                    <option value="oldest">Cũ nhất</option>
-                                    <option value="views">Lượt xem nhiều</option>
-                                    <option value="comments">Nhiều bình luận</option>
-                                </select>
-
                                 <div className="flex bg-gray-100 rounded-lg p-1">
                                     <button
                                         onClick={() => setViewMode('grid')}
@@ -243,283 +166,267 @@ export default function BlogListPage() {
                         </div>
                     </div>
 
-                    {/* Loading */}
-                    {loading && (
+                    {/* Danh sách blog - Tách riêng Grid và List View */}
+                    {loading ? (
                         <div className="text-center py-20">
                             <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-cyan-600 border-t-transparent"></div>
-                            <p className="mt-4 text-gray-600">Đang tìm kiếm...</p>
                         </div>
-                    )}
-
-                    {/* Blog List */}
-                    {!loading && (
-                        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : 'space-y-8'}>
-                            {sortedBlogs.map((blog) => (
-                                <article
-                                    key={blog.id}
-                                    onClick={() => handleBlogClick(blog.id)}
-                                    className={`bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer border border-gray-200 group ${viewMode === 'list' ? 'flex flex-col lg:flex-row' : ''
-                                        }`}
-                                >
-                                    {/* Thumbnail */}
-                                    <div className={`relative overflow-hidden ${viewMode === 'list' ? 'lg:w-96 h-80' : 'h-64'}`}>
-                                        <img
-                                            src={blog.thumbnail}
-                                            alt={blog.title}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                        />
-                                        {blog.status === 'PENDING' && (
-                                            <div className="absolute top-4 right-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                                                Chờ duyệt
+                    ) : (
+                        <>
+                            {/* ==================== GRID VIEW ==================== */}
+                            {viewMode === 'grid' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    {blogs.map((blog) => (
+                                        <article
+                                            key={blog.id}
+                                            onClick={() => navigate(`/blog/${blog.id}`)}
+                                            className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer border border-gray-200 group flex flex-col"
+                                        >
+                                            {/* Ảnh */}
+                                            <div className="relative overflow-hidden h-64">
+                                                <img
+                                                    src={blog.thumbnail}
+                                                    alt={blog.title}
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                />
                                             </div>
-                                        )}
-                                    </div>
 
-                                    {/* Content */}
-                                    <div className="p-6 lg:p-8 flex-1 flex flex-col justify-between">
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-cyan-600 transition line-clamp-2">
-                                                {blog.title}
-                                            </h3>
-                                            <p className="text-gray-600 mb-5 line-clamp-3">{blog.content}</p>
+                                            {/* Nội dung */}
+                                            <div className="p-6 flex-1 flex flex-col justify-between">
+                                                <div>
+                                                    <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-cyan-600 line-clamp-2">
+                                                        {blog.title}
+                                                    </h3>
+                                                    <p className="text-gray-600 mb-4 line-clamp-3">{blog.shortDescription}</p>
 
-                                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                                                <div className="flex items-center gap-2">
-                                                    <img src={blog.author.avatar} alt="" className="w-9 h-9 rounded-full" />
-                                                    <span className="font-medium text-gray-800">{blog.author.name}</span>
+                                                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                                                        <span className="font-medium text-gray-800">{blog.authorName}</span>
+                                                        <span>{formatDate(blog.createdAt)}</span>
+                                                    </div>
                                                 </div>
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar size={16} />
-                                                    {formatDate(blog.createdAt)}
-                                                </span>
-                                            </div>
-                                        </div>
 
-                                        <div className="mt-6 pt-5 border-t flex items-center justify-between">
-                                            <div className="flex items-center gap-5 text-sm text-gray-600">
-                                                <span className="flex items-center gap-1">
-                                                    <Eye size={18} /> {blog.views.toLocaleString()}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <MessageCircle size={18} /> {blog.commentCount}
-                                                </span>
+                                                <div className="flex items-center justify-between text-sm">
+                                                    <div className="flex gap-5 text-gray-600">
+                                                        <span>{blog.views.toLocaleString()} lượt xem</span>
+                                                        <span>{blog.commentCount} bình luận</span>
+                                                    </div>
+                                                    <span className="text-cyan-600 font-medium hover:underline">
+                                                        Đọc thêm →
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleBlogClick(blog.id);
-                                                }}
-                                                className="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700 transition font-medium"
-                                            >
-                                                Đọc thêm →
-                                            </button>
-                                        </div>
-                                    </div>
-                                </article>
-                            ))}
-                        </div>
+                                        </article>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* ==================== LIST VIEW (ảnh trái - nội dung phải) ==================== */}
+                            {viewMode === 'list' && (
+                                <div className="space-y-8">
+                                    {blogs.map((blog) => (
+                                        <article
+                                            key={blog.id}
+                                            onClick={() => navigate(`/blog/${blog.id}`)}
+                                            className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all cursor-pointer border border-gray-200 group flex flex-col lg:flex-row"
+                                        >
+                                            {/* Ảnh bên trái */}
+                                            <div className="relative overflow-hidden lg:w-96 lg:h-auto h-64 flex-shrink-0">
+                                                <img
+                                                    src={blog.thumbnail}
+                                                    alt={blog.title}
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition" />
+                                            </div>
+
+                                            {/* Nội dung bên phải */}
+                                            <div className="p-6 lg:p-8 flex-1 flex flex-col justify-between">
+                                                <div>
+                                                    <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4 group-hover:text-cyan-600 line-clamp-2">
+                                                        {blog.title}
+                                                    </h3>
+                                                    <p className="text-gray-600 mb-5 line-clamp-3 lg:line-clamp-4 text-base">
+                                                        {blog.shortDescription}
+                                                    </p>
+
+                                                    <div className="flex items-center gap-6 text-sm text-gray-500 mb-6">
+                                                        <span className="font-medium text-gray-800">{blog.authorName}</span>
+                                                        <span>{formatDate(blog.createdAt)}</span>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex gap-6 text-sm text-gray-600">
+                                                            <span>{blog.views.toLocaleString()} lượt xem</span>
+                                                            <span>{blog.commentCount} bình luận</span>
+                                                        </div>
+                                                        <span className="text-cyan-600 font-semibold hover:underline text-lg">
+                                                            Đọc thêm →
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    ))}
+                                </div>
+                            )}
+                        </>
                     )}
 
-                    {/* Empty State */}
-                    {!loading && sortedBlogs.length === 0 && (
-                        <div className="text-center py-20">
-                            <Search className="w-20 h-20 mx-auto text-gray-300 mb-6" />
-                            <h3 className="text-2xl font-semibold text-gray-700 mb-3">Không tìm thấy bài viết</h3>
-                            <p className="text-gray-500">Thử thay đổi từ khóa hoặc viết bài mới nhé!</p>
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex justify-center gap-3 mt-12">
+                            <button
+                                onClick={() => setPage(p => Math.max(0, p - 1))}
+                                disabled={page === 0}
+                                className="px-6 py-3 rounded-lg border disabled:opacity-50"
+                            >
+                                Trước
+                            </button>
+                            <span className="px-6 py-3">Trang {page + 1} / {totalPages}</span>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                                disabled={page >= totalPages - 1}
+                                className="px-6 py-3 rounded-lg border disabled:opacity-50"
+                            >
+                                Sau
+                            </button>
                         </div>
                     )}
                 </div>
 
-                {/* Floating Action Button */}
+                {/* FAB */}
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="fixed bottom-8 left-8 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white w-16 h-16 rounded-full shadow-2xl hover:scale-110 transition flex items-center justify-center z-50"
-
+                    className="fixed bottom-8 right-8 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white w-48 h-16 rounded-full shadow-2xl hover:scale-110 transition z-50 flex items-center justify-center gap-3"
                 >
                     <Plus size={32} />
+                    <span className="font-bold">Viết bài</span>
                 </button>
 
-                {/* Modal Create Blog – ĐÃ TÍCH HỢP SẴN ĐĂNG NHIỀU ẢNH PHỤ (GALLERY) */}
+                {/* Modal Viết Blog */}
                 {isModalOpen && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-                        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-y-auto">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto">
                             <div className="p-8">
-
-                                {/* Header */}
                                 <div className="flex justify-between items-center mb-8">
-                                    <h2 className="text-3xl font-bold text-gray-900">Viết bài mới</h2>
-                                    <button
-                                        onClick={() => {
-                                            setIsModalOpen(false);
-                                            setNewTitle('');
-                                            setNewContent('');
-                                            setNewThumbnail('');
-                                            setGalleryImages([]); // ← reset gallery luôn
-                                        }}
-                                        className="p-2 hover:bg-gray-100 rounded-lg transition"
-                                    >
+                                    <h2 className="text-3xl font-bold">Viết bài mới</h2>
+                                    <button onClick={() => { setIsModalOpen(false); resetModal(); }} className="p-2 hover:bg-gray-100 rounded-lg">
                                         <X size={28} />
                                     </button>
                                 </div>
 
                                 <div className="space-y-7">
-
                                     {/* Tiêu đề */}
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Tiêu đề bài viết <span className="text-red-500">*</span>
-                                        </label>
+                                        <label className="block font-semibold mb-2">Tiêu đề <span className="text-red-500">*</span></label>
                                         <input
                                             type="text"
                                             value={newTitle}
-                                            onChange={(e) => setNewTitle(e.target.value)}
-                                            placeholder="Nhập tiêu đề hấp dẫn..."
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                            onChange={e => setNewTitle(e.target.value)}
+                                            placeholder="Tiêu đề hấp dẫn..."
+                                            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none"
                                         />
                                     </div>
 
-                                    {/* Ảnh bìa (thumbnail) */}
+                                    {/* Ảnh bìa */}
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Ảnh bìa bài viết (tùy chọn)
-                                        </label>
-                                        <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-cyan-500 transition cursor-pointer group">
+                                        <label className="block font-semibold mb-2">Ảnh bìa <span className="text-red-500">*</span></label>
+                                        <label className="block border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-cyan-500">
                                             <input
                                                 type="file"
                                                 accept="image/*"
-                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                                className="hidden"
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0];
-                                                    if (!file) return;
-                                                    const reader = new FileReader();
-                                                    reader.onloadend = () => setNewThumbnail(reader.result as string);
-                                                    reader.readAsDataURL(file);
+                                                    if (file) {
+                                                        setThumbnailFile(file);
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => setThumbnailPreview(reader.result as string);
+                                                        reader.readAsDataURL(file);
+                                                    }
                                                 }}
                                             />
-                                            {newThumbnail ? (
-                                                <div className="space-y-4">
-                                                    <img src={newThumbnail} alt="Preview bìa" className="mx-auto max-h-64 rounded-lg object-cover shadow-md" />
-                                                    <p className="text-cyan-600 text-sm font-medium">Nhấp để thay ảnh bìa</p>
-                                                </div>
+                                            {thumbnailPreview ? (
+                                                <img src={thumbnailPreview} alt="Preview" className="mx-auto max-h-64 rounded-lg" />
                                             ) : (
-                                                <div className="space-y-4">
-                                                    <Upload size={40} className="mx-auto text-gray-400" />
-                                                    <p className="text-gray-700 font-medium">Nhấp để chọn ảnh bìa</p>
-                                                    <p className="text-xs text-gray-500">Hoặc kéo thả vào đây</p>
-                                                </div>
+                                                <>
+                                                    <Upload size={48} className="mx-auto text-gray-400 mb-4" />
+                                                    <p>Click để chọn ảnh bìa</p>
+                                                </>
                                             )}
-                                        </div>
+                                        </label>
                                     </div>
 
-                                    {/* ĐĂNG NHIỀU ẢNH PHỤ – ĐÃ TÍCH HỢP SẴN */}
+                                    {/* Ảnh phụ */}
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                            Ảnh phụ trong bài (tùy chọn – tối đa 20 ảnh)
+                                        <label className="block font-semibold mb-2">Ảnh phụ (tối đa 20)</label>
+                                        <label className="block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const files = Array.from(e.target.files || []);
+                                                    setGalleryFiles(prev => [...prev, ...files].slice(0, 20));
+                                                    files.forEach(file => {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            setGalleryPreviews(prev => [...prev, reader.result as string]);
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    });
+                                                }}
+                                            />
+                                            <Upload size={40} className="mx-auto text-gray-400 mb-3" />
+                                            <p>Thêm ảnh phụ</p>
+                                            <p className="text-sm text-gray-500 mt-2">{galleryFiles.length}/20</p>
                                         </label>
 
-                                        {/* Nút + preview grid */}
-                                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-6">
-                                            <div className="flex items-center justify-center mb-5">
-                                                <label className="cursor-pointer flex items-center gap-3 px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition font-medium">
-                                                    <Upload size={20} />
-                                                    Thêm ảnh phụ
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        multiple
-                                                        className="hidden"
-                                                        onChange={(e) => {
-                                                            const files = e.target.files;
-                                                            if (!files || files.length === 0) return;
-
-                                                            const newPreviews: string[] = [];
-                                                            let processed = 0;
-
-                                                            Array.from(files).forEach((file, idx) => {
-                                                                if (galleryImages.length + processed >= 20) {
-                                                                    alert("Tối đa chỉ được 20 ảnh phụ!");
-                                                                    return;
-                                                                }
-                                                                if (!file.type.startsWith("image/")) return;
-                                                                if (file.size > 10 * 1024 * 1024) {
-                                                                    alert(`Ảnh "${file.name}" quá 10MB`);
-                                                                    return;
-                                                                }
-
-                                                                const reader = new FileReader();
-                                                                reader.onloadend = () => {
-                                                                    newPreviews.push(reader.result as string);
-                                                                    processed++;
-                                                                    if (processed === files.length) {
-                                                                        setGalleryImages(prev => [...prev, ...newPreviews]);
-                                                                    }
-                                                                };
-                                                                reader.readAsDataURL(file);
-                                                            });
-                                                        }}
-                                                    />
-                                                </label>
-                                                <span className="ml-4 text-sm text-gray-600">
-                                                    {galleryImages.length > 0 ? `${galleryImages.length}/20 ảnh` : "Chưa chọn ảnh nào"}
-                                                </span>
+                                        {galleryPreviews.length > 0 && (
+                                            <div className="grid grid-cols-5 gap-3 mt-4">
+                                                {galleryPreviews.map((src, i) => (
+                                                    <div key={i} className="relative group">
+                                                        <img src={src} className="h-24 rounded-lg object-cover" />
+                                                        <button
+                                                            onClick={() => {
+                                                                setGalleryFiles(prev => prev.filter((_, idx) => idx !== i));
+                                                                setGalleryPreviews(prev => prev.filter((_, idx) => idx !== i));
+                                                            }}
+                                                            className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                ))}
                                             </div>
-
-                                            {/* Grid ảnh đã chọn */}
-                                            {galleryImages.length > 0 && (
-                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
-                                                    {galleryImages.map((src, idx) => (
-                                                        <div key={idx} className="relative group rounded-lg overflow-hidden shadow">
-                                                            <img src={src} alt={`Ảnh ${idx + 1}`} className="w-full h-32 object-cover" />
-                                                            <button
-                                                                onClick={() => setGalleryImages(prev => prev.filter((_, i) => i !== idx))}
-                                                                className="absolute top-1 right-1 p-1.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
-                                                            >
-                                                                <X size={14} />
-                                                            </button>
-                                                            <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-                                                                {idx + 1}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {galleryImages.length === 0 && (
-                                                <div className="text-center py-10 text-gray-400">
-                                                    <ImageIcon size={48} className="mx-auto mb-2" />
-                                                    <p className="text-sm">Chưa có ảnh phụ nào</p>
-                                                </div>
-                                            )}
-                                        </div>
+                                        )}
                                     </div>
 
                                     {/* Nội dung */}
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Nội dung bài viết <span className="text-red-500">*</span>
-                                        </label>
+                                        <label className="block font-semibold mb-2">Nội dung <span className="text-red-500">*</span></label>
                                         <textarea
                                             value={newContent}
-                                            onChange={(e) => setNewContent(e.target.value)}
-                                            rows={12}
+                                            onChange={e => setNewContent(e.target.value)}
+                                            rows={15}
                                             placeholder="Chia sẻ hành trình của bạn..."
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:outline-none resize-none"
+                                            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none resize-none"
                                         />
                                     </div>
 
-                                    {/* Nút */}
                                     <div className="flex gap-4 pt-6 border-t">
                                         <button
                                             onClick={handleCreateBlog}
-                                            disabled={!newTitle.trim() || !newContent.trim()}
-                                            className="flex-1 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white py-4 rounded-lg font-semibold hover:from-cyan-700 hover:to-cyan-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                            disabled={loading || !newTitle || !newContent || !thumbnailFile}
+                                            className="flex-1 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white py-4 rounded-lg font-bold hover:from-cyan-700 hover:to-cyan-800 disabled:opacity-50 flex items-center justify-center gap-2"
                                         >
+                                            {loading ? 'Đang gửi...' : 'Đăng bài viết'}
                                             <Send size={22} />
-                                            Đăng bài viết
                                         </button>
                                         <button
-                                            onClick={() => setIsModalOpen(false)}
-                                            className="px-8 py-4 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition"
+                                            onClick={() => { setIsModalOpen(false); resetModal(); }}
+                                            className="px-8 py-4 border rounded-lg hover:bg-gray-50"
                                         >
                                             Hủy
                                         </button>
