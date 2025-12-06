@@ -12,6 +12,8 @@ import {
     Loader2,
     Search,
     Eye,
+    Star,
+    Send,
 } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -19,6 +21,7 @@ import {
     fetchMyBookings,
     requestCancelBooking,
 } from '../../services/bookingService';
+import { canReviewTour, createReview } from '../../services/reviewService';
 import type { Booking, BookingPage, BookingStatus } from '../../services/bookingService';
 
 const MyToursPage: React.FC = () => {
@@ -33,7 +36,43 @@ const MyToursPage: React.FC = () => {
     const [cancelReason, setCancelReason] = useState('');
     const [cancelLoading, setCancelLoading] = useState(false);
 
+    // === REVIEW STATES ===
+    const [showReviewModal, setShowReviewModal] = useState<Booking | null>(null);
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewLoading, setReviewLoading] = useState(false);
+    const [reviewStatusCache, setReviewStatusCache] = useState<Record<number, 'can' | 'done' | 'loading'>>({});
+
     const token = localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken');
+
+    // === ĐƯA checkCanReview LÊN TRÊN TRƯỚC KHI DÙNG ===
+    const checkCanReview = useCallback(async (tourId: number): Promise<boolean> => {
+        if (reviewStatusCache[tourId]) {
+            return reviewStatusCache[tourId] === 'can';
+        }
+
+        setReviewStatusCache(prev => ({ ...prev, [tourId]: 'loading' }));
+
+        try {
+            const can = await canReviewTour(tourId);
+            const status = can ? 'can' : 'done';
+            setReviewStatusCache(prev => ({ ...prev, [tourId]: status }));
+            return can;
+        } catch {
+            setReviewStatusCache(prev => ({ ...prev, [tourId]: 'done' }));
+            return false;
+        }
+    }, [reviewStatusCache]);
+
+    // === BÂY GIỜ MỚI DÙNG ===
+    useEffect(() => {
+        const completedBookings = bookings.filter(b => b.status === 'COMPLETED');
+        completedBookings.forEach(b => {
+            if (!reviewStatusCache[b.tourId]) {
+                checkCanReview(b.tourId);
+            }
+        });
+    }, [bookings, checkCanReview, reviewStatusCache]);
 
     const loadBookings = useCallback(
         async (pageNum: number = 0, filterStatus?: BookingStatus[]) => {
@@ -90,7 +129,6 @@ const MyToursPage: React.FC = () => {
 
     const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('vi-VN');
 
-    // ĐÃ SỬA LỖI 7053 TẠI ĐÂY – Type-safe 100%
     const colors = {
         yellow: 'bg-yellow-100 text-yellow-800 border-yellow-200',
         green: 'bg-green-100 text-green-800 border-green-200',
@@ -144,6 +182,31 @@ const MyToursPage: React.FC = () => {
         navigate(`/my-tours/${bookingId}`);
     };
 
+    const handleSubmitReview = async () => {
+        if (!showReviewModal?.tourId || reviewRating < 1) {
+            toast.error('Vui lòng chọn số sao');
+            return;
+        }
+
+        setReviewLoading(true);
+        try {
+            await createReview(showReviewModal.tourId, {
+                rating: reviewRating,
+                comment: reviewComment.trim() || undefined
+            });
+            toast.success('Cảm ơn bạn đã đánh giá!');
+            setShowReviewModal(null);
+            setReviewRating(0);
+            setReviewComment('');
+            setReviewStatusCache(prev => ({ ...prev, [showReviewModal.tourId]: 'done' }));
+            loadBookings(page, statusFilter === 'ALL' ? undefined : [statusFilter]);
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Gửi đánh giá thất bại');
+        } finally {
+            setReviewLoading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -156,7 +219,7 @@ const MyToursPage: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 mt-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-14">
             <ToastContainer position="top-right" autoClose={3000} />
 
             <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -272,6 +335,36 @@ const MyToursPage: React.FC = () => {
                                                     Hủy tour
                                                 </button>
                                             )}
+
+                                            {/* === NÚT ĐÁNH GIÁ / ĐÃ ĐÁNH GIÁ === */}
+                                            {booking.status === 'COMPLETED' && (
+                                                <>
+                                                    {reviewStatusCache[booking.tourId] === 'loading' ? (
+                                                        <div className="flex items-center gap-2 px-5 py-2.5 bg-gray-200 text-gray-600 rounded-lg font-medium whitespace-nowrap">
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                            Đang kiểm tra...
+                                                        </div>
+                                                    ) : reviewStatusCache[booking.tourId] === 'can' ? (
+                                                        <button
+                                                            onClick={async () => {
+                                                                const can = await checkCanReview(booking.tourId);
+                                                                if (can) {
+                                                                    setShowReviewModal(booking);
+                                                                }
+                                                            }}
+                                                            className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition whitespace-nowrap"
+                                                        >
+                                                            <Star className="w-4 h-4" />
+                                                            Đánh giá
+                                                        </button>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 px-5 py-2.5 bg-gray-200 text-gray-600 rounded-lg font-medium whitespace-nowrap">
+                                                            <CheckCircle className="w-4 h-4" />
+                                                            Đã đánh giá
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -341,6 +434,73 @@ const MyToursPage: React.FC = () => {
                                 className="flex-1 border border-slate-300 py-3 rounded-lg font-medium hover:bg-slate-50 transition"
                             >
                                 Quay lại
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* === REVIEW MODAL === */}
+            {showReviewModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                        <h3 className="text-2xl font-bold text-slate-900 mb-4">Đánh giá tour</h3>
+                        <p className="text-slate-600 mb-6">
+                            <strong>{showReviewModal.tourName}</strong> - {showReviewModal.destinationName}
+                        </p>
+
+                        {/* Sao đánh giá */}
+                        <div className="flex gap-2 mb-5 justify-center">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                    key={star}
+                                    onClick={() => setReviewRating(star)}
+                                    className={`transition-all ${reviewRating >= star ? 'text-yellow-500 scale-110' : 'text-gray-300'
+                                        } hover:text-yellow-400`}
+                                    disabled={reviewLoading}
+                                >
+                                    <Star className="w-10 h-10 fill-current" />
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Bình luận */}
+                        <textarea
+                            placeholder="Chia sẻ trải nghiệm của bạn... (tùy chọn)"
+                            value={reviewComment}
+                            onChange={(e) => setReviewComment(e.target.value)}
+                            rows={4}
+                            maxLength={2000}
+                            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none resize-none mb-4"
+                            disabled={reviewLoading}
+                        />
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleSubmitReview}
+                                disabled={reviewLoading || reviewRating === 0}
+                                className={`flex-1 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${reviewRating === 0
+                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                                    }`}
+                            >
+                                {reviewLoading ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <Send className="w-5 h-5" />
+                                )}
+                                {reviewLoading ? 'Đang gửi...' : 'Gửi đánh giá'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowReviewModal(null);
+                                    setReviewRating(0);
+                                    setReviewComment('');
+                                }}
+                                className="flex-1 border border-slate-300 py-3 rounded-lg font-medium hover:bg-slate-50 transition"
+                                disabled={reviewLoading}
+                            >
+                                Hủy
                             </button>
                         </div>
                     </div>

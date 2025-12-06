@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Star, Grid, List, MapPin, Clock, Users, X, Briefcase } from 'lucide-react';
+import { Search, Star, Grid, List, MapPin, Clock, Users, X, Briefcase, Eye } from 'lucide-react';
 import { debounce } from 'lodash';
 
 import {
@@ -519,6 +519,10 @@ const TourComponent: React.FC = () => {
                                                                 <Users className="w-4 h-4" />
                                                                 {tour.totalParticipants} khách tham gia
                                                             </span>
+                                                            <span className="flex items-center gap-1 ml-auto">
+                                                                <Eye className="w-4 h-4" />
+                                                                {tour.views?.toLocaleString('vi-VN') || 0}
+                                                            </span>
                                                         </div>
                                                     </div>
 
@@ -557,6 +561,10 @@ const TourComponent: React.FC = () => {
                                                             <span className="flex items-center gap-1">
                                                                 <Users className="w-4 h-4" />
                                                                 {tour.totalParticipants} khách
+                                                            </span>
+                                                            <span className="flex items-center gap-1 ml-auto">
+                                                                <Eye className="w-4 h-4" />
+                                                                {tour.views?.toLocaleString('vi-VN') || 0}
                                                             </span>
                                                         </div>
                                                     </div>

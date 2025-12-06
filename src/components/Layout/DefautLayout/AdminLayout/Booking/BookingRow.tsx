@@ -2,7 +2,7 @@
 import React from 'react';
 import { User, MapPin, DollarSign, CreditCard, Trash2, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom'; // THÊM DÒNG NÀY
-import type { Booking, BookingStatus } from '../../../../../services/bookingService';
+import type { Booking, BookingStatus, } from '../../../../../services/bookingService';
 
 interface Props {
     booking: Booking;

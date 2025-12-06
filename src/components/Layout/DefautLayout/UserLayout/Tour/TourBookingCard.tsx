@@ -28,12 +28,13 @@ interface TourBookingCardProps {
     setSavedToWishlist: (value: boolean) => void;
     tourId: number;
     tourName: string;
+    views: number;
 }
 
 const TourBookingCard: React.FC<TourBookingCardProps> = ({
     price, maxParticipants, totalParticipants, startDates, transports = [],
     date, setDate, people, setPeople, notes, setNotes, onBooking,
-    savedToWishlist, setSavedToWishlist, tourId, tourName,
+    savedToWishlist, setSavedToWishlist, tourId, tourName, views,
 }) => {
     const token = typeof window !== 'undefined'
         ? localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken')
@@ -325,8 +326,9 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
                         </button>
                         <div className="flex items-center gap-2 text-gray-600">
                             <Eye className="w-5 h-5" />
-                            <span>6.249 lượt xem</span>
+                            <span>{views.toLocaleString('vi-VN')} lượt xem</span>
                         </div>
+
                     </div>
                 </div>
             </div>

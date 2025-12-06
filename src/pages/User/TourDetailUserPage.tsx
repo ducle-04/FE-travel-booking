@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Users, Check, X, ChevronDown, ChevronUp, Star,
     Play, ChevronLeft, ChevronRight, Car, MapPin, Clock, Hotel as HotelIcon,
-    Waves, Trees, Landmark, Utensils, Tag, Calendar, Plane, Train, Bus
+    Waves, Trees, Landmark, Utensils, Tag, Calendar, Plane, Train, Bus, Loader2
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -15,6 +15,7 @@ import TourBookingCard from "../../components/Layout/DefautLayout/UserLayout/Tou
 
 // Services
 import { fetchTourDetail, fetchStartDateAvailability } from '../../services/tourDetailService';
+import { fetchReviewsByTour } from '../../services/reviewService';
 import type { StartDateAvailability } from '../../services/tourDetailService';
 
 // Types
@@ -50,13 +51,17 @@ interface Tour {
     categoryIcon?: string;
     startDates?: string[];
     tourDetail?: TourDetail | null;
+    views?: number;
 }
 
-const MOCK_REVIEWS = [
-    { id: 1, userName: "Nguyễn Văn A", rating: 5, comment: "Tour rất tuyệt vời! Hướng dẫn viên nhiệt tình, cảnh đẹp, ăn uống đầy đủ.", createdAt: "15/10/2025" },
-    { id: 2, userName: "Trần Thị B", rating: 4, comment: "Chuyến đi ổn, nhưng xe hơi chật một chút. Bù lại ăn uống ngon và lịch trình hợp lý.", createdAt: "10/10/2025" },
-    { id: 3, userName: "Lê Văn C", rating: 5, comment: "Đúng như quảng cáo! Đi đúng giờ, hướng dẫn viên vui tính, ảnh đẹp. Rất hài lòng!", createdAt: "28/09/2025" }
-];
+interface ReviewDTO {
+    id: number;
+    rating: number;
+    comment: string;
+    createdAt: string;
+    userFullname: string;
+    userAvatarUrl?: string;
+}
 
 const TourDetailUserPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -77,6 +82,12 @@ const TourDetailUserPage: React.FC = () => {
     const [people, setPeople] = useState<number>(1);
     const [notes, setNotes] = useState<string>('');
     const [startDateAvailability, setStartDateAvailability] = useState<StartDateAvailability[]>([]);
+
+    // === ĐÁNH GIÁ ===
+    const [reviews, setReviews] = useState<ReviewDTO[]>([]);
+    const [reviewPage, setReviewPage] = useState(0);
+    const [totalReviewPages, setTotalReviewPages] = useState(1);
+    const [loadingReviews, setLoadingReviews] = useState(true);
 
     const faqs = [
         { question: "Tôi có thể được hoàn tiền không?", answer: "Chúng tôi sẽ hỗ trợ bạn! Vui lòng liên hệ bộ phận chăm sóc khách hàng để được tư vấn về chính sách hoàn tiền." },
@@ -104,9 +115,17 @@ const TourDetailUserPage: React.FC = () => {
         return 'from-indigo-500 to-purple-600';
     };
 
+    const hasFetched = useRef(false);
+    // === LẤY DỮ LIỆU CHUNG ===
     useEffect(() => {
-        if (id) fetchTourDetailData();
+        if (!id) return;
+
+        if (hasFetched.current) return;   // ❌ Nếu đã fetch rồi, không fetch nữa
+        hasFetched.current = true;        // ✔️ Đánh dấu đã fetch
+
+        fetchTourDetailData();            // Gọi API 1 lần duy nhất
     }, [id]);
+
 
     const fetchTourDetailData = async () => {
         setLoading(true);
@@ -115,11 +134,9 @@ const TourDetailUserPage: React.FC = () => {
             setTour(data);
             setDetail(data.tourDetail || null);
 
-            // 📌 Lấy ngày khởi hành có số chỗ trống
             const dates = await fetchStartDateAvailability(id!);
             setStartDateAvailability(dates);
 
-            // Tự chọn ngày gần nhất còn chỗ
             const availableDates = dates.filter(d => d.available);
             if (availableDates.length > 0) {
                 setDate(availableDates[0].date);
@@ -132,6 +149,27 @@ const TourDetailUserPage: React.FC = () => {
         }
     };
 
+    // === LẤY ĐÁNH GIÁ ===
+    const fetchReviews = async (page: number = 0) => {
+        if (!id) return;
+        setLoadingReviews(true);
+        try {
+            const data = await fetchReviewsByTour(Number(id), page, 10);
+            setReviews(data.content);
+            setTotalReviewPages(data.totalPages);
+            setReviewPage(page);
+        } catch (err) {
+            console.error('Lỗi tải đánh giá:', err);
+        } finally {
+            setLoadingReviews(false);
+        }
+    };
+
+    useEffect(() => {
+        if (tour) fetchReviews(0);
+    }, [tour]);
+
+    // === CHỌN NGÀY TỰ ĐỘNG ===
     useEffect(() => {
         if (tour?.startDates && tour.startDates.length > 0) {
             const now = new Date();
@@ -209,7 +247,7 @@ const TourDetailUserPage: React.FC = () => {
                         </span>
                     </div>
 
-                    {/* DANH SÁCH NGÀY KHỞI HÀNH - ĐẸP & CHỌN ĐƯỢC */}
+                    {/* DANH SÁCH NGÀY KHỞI HÀNH */}
                     {startDateAvailability.length > 0 && (
                         <div className="mb-8">
                             <p className="text-white text-sm font-medium mb-4 opacity-90 flex items-center gap-2">
@@ -227,19 +265,17 @@ const TourDetailUserPage: React.FC = () => {
                                             disabled={disabled}
                                             onClick={() => setDate(item.date)}
                                             className={`
-                            px-6 py-3.5 rounded-xl font-medium text-sm transition-all shadow-lg border-2
-                            ${isSelected
+                                                px-6 py-3.5 rounded-xl font-medium text-sm transition-all shadow-lg border-2
+                                                ${isSelected
                                                     ? 'bg-white text-gray-900 border-white scale-105 shadow-xl'
                                                     : 'bg-white/20 backdrop-blur-md text-white border-white/40 hover:bg-white/35 hover:border-white/70'
                                                 }
-                            ${disabled ? 'opacity-40 cursor-not-allowed' : ''}
-                        `}
+                                                ${disabled ? 'opacity-40 cursor-not-allowed' : ''}
+                                            `}
                                         >
                                             {item.formattedDate}
                                             <div className="text-xs mt-1 opacity-80">
-                                                {item.available
-                                                    ? `Còn ${item.remainingSeats} chỗ`
-                                                    : 'Hết chỗ'}
+                                                {item.available ? `Còn ${item.remainingSeats} chỗ` : 'Hết chỗ'}
                                             </div>
                                         </button>
                                     );
@@ -249,13 +285,12 @@ const TourDetailUserPage: React.FC = () => {
                             <div className="mt-5 text-white">
                                 <span className="text-sm opacity-80">Ngày đã chọn:</span>
                                 <span className="ml-3 text-xl font-bold bg-white/25 backdrop-blur px-6 py-3 rounded-full">
-                                    {date
-                                        ? startDateAvailability.find(d => d.date === date)?.formattedDate
-                                        : 'Chưa chọn ngày'}
+                                    {date ? startDateAvailability.find(d => d.date === date)?.formattedDate : 'Chưa chọn ngày'}
                                 </span>
                             </div>
                         </div>
                     )}
+
                     <div className="flex items-center gap-6 mb-14">
                         <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
                             {[...Array(5)].map((_, i) => (
@@ -447,34 +482,92 @@ const TourDetailUserPage: React.FC = () => {
                             </div>
                         </motion.div>
 
-                        {/* Reviews */}
+                        {/* Reviews - API THẬT */}
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-white rounded-xl p-8 shadow-sm">
-                            <h2 className="text-2xl font-bold mb-6">Đánh giá từ khách hàng</h2>
-                            <div className="space-y-6">
-                                {MOCK_REVIEWS.map(r => (
-                                    <div key={r.id} className="flex gap-4 p-5 rounded-xl bg-gray-50 border">
-                                        <div className="w-12 h-12 bg-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                                            {r.userName[0]}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <p className="font-semibold text-lg">{r.userName}</p>
-                                                <p className="text-sm text-gray-500">{r.createdAt}</p>
-                                            </div>
-                                            <div className="flex gap-1 mb-2">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <Star key={i} size={16} className={i < r.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'} />
-                                                ))}
-                                            </div>
-                                            <p className="text-gray-700 leading-relaxed">{r.comment}</p>
-                                        </div>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold">Đánh giá từ khách hàng</h2>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex gap-1">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} size={20} className={i < Math.round(tour.averageRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'} />
+                                        ))}
                                     </div>
-                                ))}
+                                    <span className="font-semibold text-lg">{tour.averageRating.toFixed(1)}</span>
+                                    <span className="text-sm text-gray-500">({tour.reviewsCount} đánh giá)</span>
+                                </div>
                             </div>
+
+                            {loadingReviews ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="w-8 h-8 animate-spin text-cyan-600" />
+                                </div>
+                            ) : reviews.length === 0 ? (
+                                <p className="text-center text-gray-500 py-8">Chưa có đánh giá nào</p>
+                            ) : (
+                                <>
+                                    <div className="space-y-6">
+                                        {reviews.map(r => (
+                                            <div key={r.id} className="flex gap-4 p-5 rounded-xl bg-gray-50 border">
+                                                <div className="flex-shrink-0">
+                                                    {r.userAvatarUrl ? (
+                                                        <img
+                                                            src={r.userAvatarUrl}
+                                                            alt={r.userFullname}
+                                                            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                                                            onError={(e) => {
+                                                                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(r.userFullname)}&background=0D8ABC&color=fff&size=128`;
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+                                                            {r.userFullname[0].toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <p className="font-semibold text-lg">{r.userFullname}</p>
+                                                        <p className="text-sm text-gray-500">{new Date(r.createdAt).toLocaleDateString('vi-VN')}</p>
+                                                    </div>
+                                                    <div className="flex gap-1 mb-2">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star key={i} size={16} className={i < r.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'} />
+                                                        ))}
+                                                    </div>
+                                                    <p className="text-gray-700 leading-relaxed">{r.comment}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Phân trang đánh giá */}
+                                    {totalReviewPages > 1 && (
+                                        <div className="flex justify-center gap-2 mt-8">
+                                            <button
+                                                onClick={() => fetchReviews(reviewPage - 1)}
+                                                disabled={reviewPage === 0}
+                                                className="px-4 py-2 border rounded-lg disabled:opacity-50 hover:bg-gray-50"
+                                            >
+                                                Trước
+                                            </button>
+                                            <span className="px-4 py-2">
+                                                Trang {reviewPage + 1} / {totalReviewPages}
+                                            </span>
+                                            <button
+                                                onClick={() => fetchReviews(reviewPage + 1)}
+                                                disabled={reviewPage >= totalReviewPages - 1}
+                                                className="px-4 py-2 border rounded-lg disabled:opacity-50 hover:bg-gray-50"
+                                            >
+                                                Sau
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </motion.div>
                     </div>
 
-                    {/* Right Column - DÙNG COMPONENT MỚI */}
+                    {/* Right Column */}
                     <div className="lg:col-span-1">
                         <TourBookingCard
                             tourId={tour.id}
@@ -504,25 +597,20 @@ const TourDetailUserPage: React.FC = () => {
                             }}
                             savedToWishlist={savedToWishlist}
                             setSavedToWishlist={setSavedToWishlist}
+                            views={tour.views ?? 0}
                         />
                     </div>
                 </div>
             </div>
 
+            {/* Modals */}
             <AnimatePresence>
                 {showGalleryModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
-                        onClick={() => setShowGalleryModal(false)}
-                    >
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4" onClick={() => setShowGalleryModal(false)}>
                         <div className="relative max-w-7xl w-full mt-10" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => setShowGalleryModal(false)} className="absolute -top-12 right-0 text-white hover:text-gray-300 transition z-10">
                                 <X size={32} />
                             </button>
-
                             <div className="relative">
                                 <motion.img
                                     key={currentImageIndex}
@@ -532,9 +620,7 @@ const TourDetailUserPage: React.FC = () => {
                                     src={allImages[currentImageIndex]}
                                     alt={`Ảnh ${currentImageIndex + 1}`}
                                     className="w-full max-h-[70vh] object-contain rounded-xl"
-                                    onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/1200x800?text=Image'; }}
                                 />
-
                                 {allImages.length > 1 && (
                                     <>
                                         <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 backdrop-blur-sm text-white rounded-full hover:bg-white/30 transition">
@@ -545,12 +631,10 @@ const TourDetailUserPage: React.FC = () => {
                                         </button>
                                     </>
                                 )}
-
                                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm">
                                     {currentImageIndex + 1} / {allImages.length}
                                 </div>
                             </div>
-
                             <div className="mt-6 grid grid-cols-6 md:grid-cols-8 gap-3 max-h-32 overflow-y-auto">
                                 {allImages.map((img, idx) => (
                                     <motion.img
@@ -560,7 +644,6 @@ const TourDetailUserPage: React.FC = () => {
                                         whileHover={{ scale: 1.05 }}
                                         className={`w-full aspect-square object-cover rounded-lg cursor-pointer transition ${idx === currentImageIndex ? 'ring-4 ring-blue-500 opacity-100' : 'opacity-60 hover:opacity-100'}`}
                                         onClick={() => setCurrentImageIndex(idx)}
-                                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150?text=Img'; }}
                                     />
                                 ))}
                             </div>
@@ -569,16 +652,9 @@ const TourDetailUserPage: React.FC = () => {
                 )}
             </AnimatePresence>
 
-            {/* Video Modal */}
             <AnimatePresence>
                 {showVideoModal && selectedVideo && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-                        onClick={() => setShowVideoModal(false)}
-                    >
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setShowVideoModal(false)}>
                         <div className="relative max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => setShowVideoModal(false)} className="absolute -top-12 right-0 text-white hover:text-gray-300 transition">
                                 <X size={32} />
@@ -589,12 +665,7 @@ const TourDetailUserPage: React.FC = () => {
                 )}
             </AnimatePresence>
 
-            {/* Hotel Modal */}
-            <UserHotelModal
-                isOpen={!!selectedHotel}
-                onClose={() => setSelectedHotel(null)}
-                hotel={selectedHotel}
-            />
+            <UserHotelModal isOpen={!!selectedHotel} onClose={() => setSelectedHotel(null)} hotel={selectedHotel} />
         </div>
     );
 };

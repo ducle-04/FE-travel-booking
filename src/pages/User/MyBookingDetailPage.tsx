@@ -171,8 +171,23 @@ const MyBookingDetailPage: React.FC = () => {
                                 </h3>
                                 <div className="flex items-center justify-between flex-wrap gap-4 text-indigo-800">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-blue-600 flex items-center justify-center text-white text-xl font-bold">
-                                            {(booking.contactName || booking.userFullname || '?')[0].toUpperCase()}
+                                        <div className="flex-shrink-0">
+                                            {booking.userAvatarUrl || booking.userAvatarUrl ? (
+                                                <img
+                                                    src={booking.userAvatarUrl || booking.userAvatarUrl!}
+                                                    alt={booking.contactName || booking.userFullname}
+                                                    className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg"
+                                                    onError={(e) => {
+                                                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                                            booking.contactName || booking.userFullname || 'User'
+                                                        )}&background=4F46E5&color=fff&size=128`;
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                                                    {(booking.contactName || booking.userFullname || '?')[0].toUpperCase()}
+                                                </div>
+                                            )}
                                         </div>
                                         <div>
                                             <p className="font-semibold">{booking.contactName || booking.userFullname}</p>

@@ -39,9 +39,18 @@ export interface StartDateAvailability {
 export const fetchTourDetail = async (tourId: string): Promise<Tour & { tourDetail: TourDetail | null }> => {
     try {
         const response = await axios.get(`http://localhost:8080/api/tours/${tourId}`);
-        return response.data.data; // BE trả đúng kiểu có tourDetail
+        const tour = response.data.data;
+
+        // Đảm bảo views luôn có (vừa được tăng +1 ở backend)
+        return {
+            ...tour,
+            views: tour.views ?? 0,
+            tourDetail: tour.tourDetail || null,
+        };
     } catch (error: any) {
-        throw new Error(error.response?.data?.message || 'Không thể tải chi tiết tour');
+        const msg = error.response?.data?.message || 'Không thể tải chi tiết tour';
+        console.error('fetchTourDetail error:', msg);
+        throw new Error(msg);
     }
 };
 

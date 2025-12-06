@@ -19,6 +19,7 @@ export interface Tour {
     categoryName?: string;
     categoryIcon?: string;
     startDates?: string[];
+    views?: number;
 }
 
 export interface Destination {
@@ -51,10 +52,11 @@ const mapPageToResponse = (page: any): TourResponse => {
         ...tour,
         status: (tour.status || 'ACTIVE').toUpperCase() as 'ACTIVE' | 'INACTIVE',
         maxParticipants: tour.maxParticipants || 50,
-        categoryId: tour.categoryId,
-        categoryName: tour.categoryName,
-        categoryIcon: tour.categoryIcon || 'MapPin',
+        categoryId: tour.categoryId ?? undefined,
+        categoryName: tour.categoryName ?? undefined,
+        categoryIcon: tour.categoryIcon ?? 'MapPin',
         startDates: tour.startDates || [],
+        views: tour.views ?? 0, // Đảm bảo luôn có views (mặc định 0 nếu backend chưa trả)
     }));
 
     return {
@@ -164,7 +166,8 @@ export const fetchToursByDestination = async (destinationId: string): Promise<To
             categoryId: tour.category?.id || tour.categoryId,
             categoryName: tour.category?.name || tour.categoryName,
             categoryIcon: tour.category?.icon || 'MapPin',
-            startDates: tour.startDates || [], // ← Đảm bảo có ngày khởi hành
+            startDates: tour.startDates || [],
+            views: tour.views ?? 0,
         }));
         return {
             tours,

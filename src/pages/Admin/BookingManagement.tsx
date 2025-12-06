@@ -2,10 +2,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-
+import Swal from 'sweetalert2';
+import { toast } from 'react-toastify';
 import {
     fetchPendingBookings,
     fetchBookingStats,
+    softDeleteBooking,           // ✅ THÊM DÒNG NÀY
 } from '../../services/bookingService';
 
 import type {
@@ -44,7 +46,6 @@ const BookingManagement: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<BookingStatus | 'ALL'>('ALL');
 
-    // Load danh sách booking
     const loadBookings = useCallback(async (pageNum: number = 0, filterStatus?: BookingStatus[]) => {
         setLoadingBookings(true);
         try {
@@ -58,7 +59,6 @@ const BookingManagement: React.FC = () => {
         }
     }, []);
 
-    // Load thống kê
     const loadStats = useCallback(async () => {
         setLoadingStats(true);
         try {
@@ -71,14 +71,12 @@ const BookingManagement: React.FC = () => {
         }
     }, []);
 
-    // Load theo page trên URL
     useEffect(() => {
         const filter = statusFilter === 'ALL' ? undefined : [statusFilter];
         loadBookings(urlPage, filter);
         loadStats();
-    }, [urlPage]);
+    }, [urlPage, statusFilter, loadBookings, loadStats]);
 
-    // Khi đổi trạng thái — reset page về 0 nhưng KHÔNG reload data sai
     const handleStatusFilterChange = (newStatus: BookingStatus | 'ALL') => {
         setStatusFilter(newStatus);
         setSearchParams({ page: "0" });
@@ -101,10 +99,61 @@ const BookingManagement: React.FC = () => {
         navigate(`/admin/bookings/${booking.id}?page=${urlPage}`);
     };
 
-    const handleBookingDeleted = (id: number) => {
-        setBookings(prev => prev.filter(b => b.id !== id));
-        loadStats();
+    // ✅ SỬA HÀM NÀY
+    const handleBookingDeleted = async (id: number) => {
+        const result = await Swal.fire({
+            title: 'Xác nhận xóa booking',
+            text: `Bạn có chắc muốn xóa booking #${id}? Hành động này không thể hoàn tác.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy',
+            reverseButtons: true,
+            customClass: {
+                popup: theme === 'dark' ? 'swal2-dark' : '',
+                title: theme === 'dark' ? 'text-gray-200' : 'text-gray-800',
+                htmlContainer: theme === 'dark' ? 'text-gray-300' : 'text-gray-600',
+                confirmButton:
+                    theme === 'dark'
+                        ? 'bg-red-600 hover:bg-red-500 text-white'
+                        : 'bg-red-600 hover:bg-red-500 text-white',
+                cancelButton:
+                    theme === 'dark'
+                        ? 'bg-gray-600 hover:bg-gray-500 text-white'
+                        : 'bg-gray-300 hover:bg-gray-400 text-gray-800',
+            },
+            background: theme === 'dark' ? '#1f2937' : '#ffffff',
+            color: theme === 'dark' ? '#e5e7eb' : '#374151',
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            await softDeleteBooking(id);
+
+            // Cập nhật UI
+            setBookings(prev => prev.filter(b => b.id !== id));
+            loadStats();
+
+            // 🎉 Toastify thông báo thành công
+            toast.success(`Đã xóa booking #${id} thành công!`, {
+                position: "top-right",
+                autoClose: 3000,
+                theme: theme === "dark" ? "dark" : "light",
+            });
+
+        } catch (err: any) {
+            console.error('Delete booking error:', err);
+
+            toast.error(`Xóa thất bại: ${err?.message || "Lỗi không xác định"}`, {
+                position: "top-right",
+                autoClose: 5000,
+                theme: theme === "dark" ? "dark" : "light",
+            });
+        }
     };
+
+
 
     return (
         <div className={`min-h-screen p-6 ${theme === 'dark' ? 'bg-gray-900' : 'bg-blue-50'}`}>
