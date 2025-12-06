@@ -1,5 +1,7 @@
+// src/components/Layout/DefautLayout/AdminLayout/Booking/BookingRow.tsx
 import React from 'react';
-import { User, MapPin, DollarSign, CreditCard, Trash2 } from 'lucide-react';
+import { User, MapPin, DollarSign, CreditCard, Trash2, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom'; // THÊM DÒNG NÀY
 import type { Booking, BookingStatus } from '../../../../../services/bookingService';
 
 interface Props {
@@ -28,16 +30,7 @@ const BookingRow: React.FC<Props> = ({ booking, index, page, theme, onOpenModal,
         const { bg, text, label } = map[status];
 
         return (
-            <span
-                className={`
-                inline-flex items-center
-                px-5 py-2
-                rounded-full
-                font-semibold text-sm
-                ${bg} ${text}
-                border border-current/20
-            `}
-            >
+            <span className={`inline-flex items-center px-5 py-2 rounded-full font-semibold text-sm ${bg} ${text} border border-current/20`}>
                 {label}
             </span>
         );
@@ -69,6 +62,8 @@ const BookingRow: React.FC<Props> = ({ booking, index, page, theme, onOpenModal,
     return (
         <tr className={`hover:${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'} transition`}>
             <td className={`px-6 py-5 text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>{stt}</td>
+
+            {/* Khách hàng */}
             <td className="px-6 py-5">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden border-2 border-gray-600">
@@ -90,12 +85,24 @@ const BookingRow: React.FC<Props> = ({ booking, index, page, theme, onOpenModal,
                     </div>
                 </div>
             </td>
+
+            {/* SỬA CHỖ NÀY: Tên tour thành link */}
             <td className="px-6 py-5">
-                <div className={`font-medium ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{booking.tourName}</div>
-                <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} flex items-center gap-1`}>
+                <Link
+                    to={`/tours/${booking.tourId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`font-medium hover:text-purple-600 hover:underline flex items-center gap-1 transition ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}
+                >
+                    {booking.tourName}
+                    <ExternalLink size={14} className="opacity-60" />
+                </Link>
+                <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} flex items-center gap-1 mt-1`}>
                     <MapPin size={14} /> {booking.destinationName}
                 </div>
             </td>
+
+            {/* Các cột còn lại giữ nguyên */}
             <td className={`px-6 py-5 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}`}>{formatDate(booking.selectedStartDate)}</td>
             <td className={`px-6 py-5 text-center font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{booking.numberOfPeople}</td>
             <td className={`px-6 py-5 font-bold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
@@ -109,6 +116,8 @@ const BookingRow: React.FC<Props> = ({ booking, index, page, theme, onOpenModal,
                 </div>
             </td>
             <td className="px-6 py-5">{getStatusBadge(booking.status)}</td>
+
+            {/* Thao tác */}
             <td className="px-6 py-5">
                 <div className="flex items-center gap-4">
                     <button

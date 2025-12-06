@@ -214,7 +214,6 @@ const BookingModal: React.FC<Props> = ({ booking, isOpen, onClose, onUpdate, axi
                         {booking.paymentMethod && (
                             <PaymentSection
                                 booking={booking}
-                                theme={theme}
                                 onUpdate={onUpdate}
                                 axiosInstance={axiosInstance}
                             />

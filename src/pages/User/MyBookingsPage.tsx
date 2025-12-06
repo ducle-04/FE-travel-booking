@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    ArrowLeft,
     MapPin,
     Calendar,
     Users,
@@ -11,9 +10,8 @@ import {
     XCircle,
     AlertCircle,
     Loader2,
-    User,
     Search,
-    Filter,
+    Eye,
 } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -27,9 +25,8 @@ const MyToursPage: React.FC = () => {
     const navigate = useNavigate();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [page, setPage] = useState(0);
-    const [totalPages, setTotalPages] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<BookingStatus | 'ALL'>('ALL');
     const [showCancelModal, setShowCancelModal] = useState<Booking | null>(null);
@@ -39,29 +36,27 @@ const MyToursPage: React.FC = () => {
     const token = localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken');
 
     const loadBookings = useCallback(
-        async (pageNum: number, filterStatus?: BookingStatus[]) => {
+        async (pageNum: number = 0, filterStatus?: BookingStatus[]) => {
             if (!token) {
-                toast.error('Vui lòng đăng nhập để xem booking.', { position: 'top-right' });
+                toast.error('Vui lòng đăng nhập để xem tour đã đặt.');
                 navigate('/login');
                 return;
             }
 
             setLoading(true);
-            setError(null);
             try {
                 const data: BookingPage = await fetchMyBookings(pageNum, filterStatus);
                 setBookings(data.content);
-                setTotalPages(data.totalPages);
+                setTotalPages(data.totalPages || 1);
                 setPage(pageNum);
             } catch (err: any) {
-                if (err.message.includes('401') || err.response?.status === 401) {
-                    toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                if (err.response?.status === 401) {
                     localStorage.removeItem('jwtToken');
                     sessionStorage.removeItem('jwtToken');
+                    toast.error('Phiên đăng nhập hết hạn');
                     navigate('/login');
                 } else {
-                    setError(err.message || 'Không thể tải danh sách booking.');
-                    toast.error(err.message || 'Lỗi tải dữ liệu');
+                    toast.error('Không thể tải danh sách tour');
                 }
             } finally {
                 setLoading(false);
@@ -75,18 +70,19 @@ const MyToursPage: React.FC = () => {
     }, [loadBookings]);
 
     useEffect(() => {
-        const filterStatuses = statusFilter === 'ALL' ? undefined : [statusFilter];
-        loadBookings(0, filterStatuses);
+        const filter = statusFilter === 'ALL' ? undefined : [statusFilter];
+        loadBookings(0, filter);
     }, [statusFilter]);
 
     const filteredBookings = useMemo(() => {
-        return bookings.filter((booking) => {
-            const matchesSearch =
-                booking.tourName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                booking.destinationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                booking.userPhone.includes(searchTerm);
-            return matchesSearch;
-        });
+        if (!searchTerm.trim()) return bookings;
+        const term = searchTerm.toLowerCase();
+        return bookings.filter(b =>
+            b.tourName.toLowerCase().includes(term) ||
+            b.destinationName.toLowerCase().includes(term) ||
+            b.contactPhone.includes(term) ||
+            b.contactEmail.toLowerCase().includes(term)
+        );
     }, [bookings, searchTerm]);
 
     const formatCurrency = (amount: number) =>
@@ -94,60 +90,35 @@ const MyToursPage: React.FC = () => {
 
     const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('vi-VN');
 
+    // ĐÃ SỬA LỖI 7053 TẠI ĐÂY – Type-safe 100%
+    const colors = {
+        yellow: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        green: 'bg-green-100 text-green-800 border-green-200',
+        red: 'bg-red-100 text-red-800 border-red-200',
+        orange: 'bg-orange-100 text-orange-800 border-orange-200',
+        gray: 'bg-gray-100 text-gray-800 border-gray-200',
+        blue: 'bg-blue-100 text-blue-800 border-blue-200',
+    } as const;
+
+    type ColorKey = keyof typeof colors;
+
+    const statusConfig = {
+        PENDING: { color: 'yellow' as ColorKey, label: 'Chờ xác nhận', icon: Clock },
+        CONFIRMED: { color: 'green' as ColorKey, label: 'Đã xác nhận', icon: CheckCircle },
+        REJECTED: { color: 'red' as ColorKey, label: 'Bị từ chối', icon: XCircle },
+        CANCEL_REQUEST: { color: 'orange' as ColorKey, label: 'Đang hủy', icon: AlertCircle },
+        CANCELLED: { color: 'gray' as ColorKey, label: 'Đã hủy', icon: XCircle },
+        COMPLETED: { color: 'blue' as ColorKey, label: 'Hoàn thành', icon: CheckCircle },
+        DELETED: { color: 'gray' as ColorKey, label: 'Đã xóa', icon: XCircle },
+    } satisfies Record<BookingStatus, { color: ColorKey; label: string; icon: any }>;
+
     const getStatusBadge = (status: BookingStatus) => {
-        const badges: Record<
-            BookingStatus,
-            { bg: string; text: string; icon: React.ReactNode; label: string }
-        > = {
-            PENDING: {
-                bg: 'bg-yellow-100 border-yellow-200',
-                text: 'text-yellow-800',
-                icon: <Clock className="w-3 h-3" />,
-                label: 'Chờ xác nhận',
-            },
-            CONFIRMED: {
-                bg: 'bg-green-100 border-green-200',
-                text: 'text-green-800',
-                icon: <CheckCircle className="w-3 h-3" />,
-                label: 'Đã xác nhận',
-            },
-            REJECTED: {
-                bg: 'bg-red-100 border-red-200',
-                text: 'text-red-800',
-                icon: <XCircle className="w-3 h-3" />,
-                label: 'Bị từ chối',
-            },
-            CANCEL_REQUEST: {
-                bg: 'bg-orange-100 border-orange-200',
-                text: 'text-orange-800',
-                icon: <AlertCircle className="w-3 h-3" />,
-                label: 'Yêu cầu hủy',
-            },
-            CANCELLED: {
-                bg: 'bg-gray-100 border-gray-200',
-                text: 'text-gray-800',
-                icon: <XCircle className="w-3 h-3" />,
-                label: 'Đã hủy',
-            },
-            COMPLETED: {
-                bg: 'bg-blue-100 border-blue-200',
-                text: 'text-blue-800',
-                icon: <CheckCircle className="w-3 h-3" />,
-                label: 'Hoàn thành',
-            },
-            DELETED: {
-                bg: 'bg-gray-100 border-gray-200',
-                text: 'text-gray-800',
-                icon: <XCircle className="w-3 h-3" />,
-                label: 'Đã xóa',
-            },
-        };
-        const { bg, text, icon, label } = badges[status];
+        const config = statusConfig[status] ?? statusConfig.PENDING;
+        const { color, label, icon: Icon } = config;
+
         return (
-            <span
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border ${bg} ${text}`}
-            >
-                {icon}
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${colors[color]}`}>
+                <Icon className="w-3.5 h-3.5" />
                 {label}
             </span>
         );
@@ -158,212 +129,174 @@ const MyToursPage: React.FC = () => {
         setCancelLoading(true);
         try {
             const updated = await requestCancelBooking(showCancelModal.id, cancelReason);
-            setBookings((prev) =>
-                prev.map((b) => (b.id === updated.id ? updated : b))
-            );
-            toast.success('Đã gửi yêu cầu hủy tour thành công!');
+            setBookings(prev => prev.map(b => b.id === updated.id ? updated : b));
+            toast.success('Đã gửi yêu cầu hủy thành công!');
             setShowCancelModal(null);
             setCancelReason('');
         } catch (err: any) {
-            toast.error(err.message || 'Gửi yêu cầu hủy thất bại');
+            toast.error(err.response?.data?.message || 'Gửi yêu cầu thất bại');
         } finally {
             setCancelLoading(false);
         }
     };
 
+    const goToDetail = (bookingId: number) => {
+        navigate(`/my-tours/${bookingId}`);
+    };
+
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex justify-center items-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
-                        <Loader2 className="w-8 h-8 text-cyan-600 animate-spin" />
-                    </div>
-                    <p className="text-slate-600 font-medium">Đang tải tour đã đặt...</p>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-12 h-12 animate-spin text-cyan-600 mx-auto mb-4" />
+                    <p className="text-slate-600">Đang tải tour của bạn...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 mt-8">
             <ToastContainer position="top-right" autoClose={3000} />
-            <div className="container mx-auto px-4 py-8 max-w-6xl">
+
+            <div className="container mx-auto px-4 py-8 max-w-7xl">
                 {/* Header */}
-                <div className="mb-8 mt-10">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="inline-flex items-center text-slate-600 hover:text-slate-800 font-medium transition-colors duration-200 mb-4 group"
-                    >
-                        <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
-                        Quay lại
-                    </button>
-                    <h1 className="text-4xl font-bold text-slate-900 mb-2">Tour đã đặt</h1>
-                    <p className="text-slate-600">Theo dõi lịch sử đặt tour của bạn</p>
+                <div className="mb-8">
+                    <h1 className="text-4xl font-bold text-slate-900">Tour đã đặt</h1>
+                    <p className="text-slate-600 mt-2">Quản lý và theo dõi các chuyến đi của bạn</p>
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white rounded-lg p-6 mb-6 border border-slate-200 shadow-sm">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                             <input
                                 type="text"
-                                placeholder="Tìm tour, điểm đến, SĐT..."
+                                placeholder="Tìm tour, điểm đến, email, số điện thoại..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                                className="w-full pl-11 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition"
                             />
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Filter className="w-5 h-5 text-slate-400" />
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value as BookingStatus | 'ALL')}
-                                className="px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                            >
-                                <option value="ALL">Tất cả trạng thái</option>
-                                <option value="PENDING">Chờ xác nhận</option>
-                                <option value="CONFIRMED">Đã xác nhận</option>
-                                <option value="CANCEL_REQUEST">Yêu cầu hủy</option>
-                                <option value="CANCELLED">Đã hủy</option>
-                                <option value="REJECTED">Bị từ chối</option>
-                                <option value="COMPLETED">Hoàn thành</option>
-                            </select>
-                        </div>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as any)}
+                            className="px-5 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none"
+                        >
+                            <option value="ALL">Tất cả trạng thái</option>
+                            <option value="PENDING">Chờ xác nhận</option>
+                            <option value="CONFIRMED">Đã xác nhận</option>
+                            <option value="CANCEL_REQUEST">Đang yêu cầu hủy</option>
+                            <option value="CANCELLED">Đã hủy</option>
+                            <option value="COMPLETED">Hoàn thành</option>
+                            <option value="REJECTED">Bị từ chối</option>
+                        </select>
                     </div>
                 </div>
 
-                {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
-                        <AlertCircle className="w-5 h-5" />
-                        <span>{error}</span>
-                    </div>
-                )}
-
-                {/* Booking Cards */}
+                {/* Booking List */}
                 <div className="space-y-6">
                     {filteredBookings.length === 0 ? (
-                        <div className="text-center py-16 bg-white rounded-lg border border-slate-200">
-                            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Calendar className="w-10 h-10 text-slate-400" />
-                            </div>
-                            <p className="text-slate-600 font-medium">Bạn chưa đặt tour nào</p>
+                        <div className="text-center py-20 bg-white rounded-xl border border-slate-200">
+                            <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                            <p className="text-xl font-medium text-slate-600">Bạn chưa đặt tour nào</p>
                             <button
                                 onClick={() => navigate('/tours')}
-                                className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
+                                className="mt-6 px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-medium transition"
                             >
                                 Khám phá tour ngay
                             </button>
                         </div>
                     ) : (
-                        filteredBookings.map((booking, index) => {
-                            const stt = page * 10 + index + 1;
-                            return (
-                                <div
-                                    key={booking.id}
-                                    className="bg-white rounded-lg p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
-                                >
-                                    <div className="flex flex-col md:flex-row gap-6">
-                                        {/* Avatar + Info */}
-                                        <div className="flex items-start gap-4 flex-shrink-0">
-                                            <div className="text-slate-500 text-sm font-medium">#{stt}</div>
-                                            <div className="flex-shrink-0">
-                                                {booking.userAvatarUrl ? (
-                                                    <img
-                                                        src={booking.userAvatarUrl}
-                                                        alt={booking.userFullname}
-                                                        className="w-14 h-14 rounded-full object-cover border border-slate-200"
-                                                    />
-                                                ) : (
-                                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center">
-                                                        <User className="w-6 h-6 text-white" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-slate-900">{booking.userFullname}</p>
-                                                <p className="text-sm text-slate-500">{booking.userPhone}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Tour Info */}
-                                        <div className="flex-1 space-y-3">
-                                            <div>
-                                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                                    <MapPin className="w-5 h-5 text-cyan-600" />
-                                                    {booking.tourName}
-                                                </h3>
-                                                <p className="text-slate-600 ml-7">{booking.destinationName}</p>
+                        filteredBookings.map((booking) => (
+                            <div
+                                key={booking.id}
+                                className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow"
+                            >
+                                <div className="p-6">
+                                    <div className="flex flex-col lg:flex-row gap-6">
+                                        <div className="flex-1">
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                                        <MapPin className="w-5 h-5 text-cyan-600" />
+                                                        {booking.tourName}
+                                                    </h3>
+                                                    <p className="text-slate-600">{booking.destinationName}</p>
+                                                </div>
+                                                {getStatusBadge(booking.status)}
                                             </div>
 
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                                 <div className="flex items-center gap-2 text-slate-600">
-                                                    <Calendar className="w-4 h-4 text-slate-400" />
-                                                    <span>{formatDate(booking.startDate)}</span>
+                                                    <Calendar className="w-4 h-4" />
+                                                    <span>{formatDate(booking.selectedStartDate)}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-slate-600">
-                                                    <Users className="w-4 h-4 text-slate-400" />
+                                                    <Users className="w-4 h-4" />
                                                     <span>{booking.numberOfPeople} người</span>
                                                 </div>
-                                                <div className="flex items-center gap-1 font-semibold text-slate-900">
+                                                <div className="flex items-center gap-2 font-semibold text-slate-900">
                                                     <DollarSign className="w-4 h-4 text-green-600" />
                                                     <span>{formatCurrency(booking.totalPrice)}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-slate-500 text-xs">
+                                                    <Clock className="w-4 h-4" />
+                                                    <span>Đặt: {formatDate(booking.bookingDate)}</span>
                                                 </div>
                                             </div>
 
                                             {booking.note && (
-                                                <p className="text-sm text-slate-600 italic">Ghi chú: "{booking.note}"</p>
+                                                <p className="mt-3 text-sm italic text-slate-600 bg-slate-50 px-4 py-2 rounded-lg">
+                                                    Ghi chú: "{booking.note}"
+                                                </p>
                                             )}
                                         </div>
 
-                                        {/* Status + Action */}
-                                        <div className="flex flex-col items-end justify-between">
-                                            <div>{getStatusBadge(booking.status)}</div>
-                                            <p className="text-xs text-slate-500 mt-2">
-                                                Đặt ngày: {formatDate(booking.bookingDate)}
-                                            </p>
+                                        <div className="flex flex-row lg:flex-col gap-3 justify-end">
+                                            <button
+                                                onClick={() => goToDetail(booking.id)}
+                                                className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-medium transition whitespace-nowrap"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                                Xem chi tiết
+                                            </button>
 
-                                            {/* Nút hủy nếu được phép */}
                                             {['PENDING', 'CONFIRMED'].includes(booking.status) && (
                                                 <button
                                                     onClick={() => setShowCancelModal(booking)}
-                                                    className="mt-3 text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+                                                    className="flex items-center gap-2 px-5 py-2.5 border border-orange-300 text-orange-700 rounded-lg hover:bg-orange-50 font-medium transition whitespace-nowrap"
                                                 >
                                                     <AlertCircle className="w-4 h-4" />
-                                                    Yêu cầu hủy tour
+                                                    Hủy tour
                                                 </button>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                            );
-                        })
+                            </div>
+                        ))
                     )}
                 </div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-4 mt-8">
+                    <div className="flex justify-center gap-3 mt-10">
                         <button
-                            onClick={() => {
-                                const filterStatuses = statusFilter === 'ALL' ? undefined : [statusFilter];
-                                loadBookings(page - 1, filterStatuses);
-                            }}
+                            onClick={() => loadBookings(page - 1, statusFilter === 'ALL' ? undefined : [statusFilter])}
                             disabled={page === 0}
-                            className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="px-6 py-3 border rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
                         >
                             Trước
                         </button>
-                        <span className="text-slate-600 font-medium">
+                        <span className="px-6 py-3 font-medium text-slate-700">
                             Trang {page + 1} / {totalPages}
                         </span>
                         <button
-                            onClick={() => {
-                                const filterStatuses = statusFilter === 'ALL' ? undefined : [statusFilter];
-                                loadBookings(page + 1, filterStatuses);
-                            }}
-                            disabled={page === totalPages - 1}
-                            className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            onClick={() => loadBookings(page + 1, statusFilter === 'ALL' ? undefined : [statusFilter])}
+                            disabled={page >= totalPages - 1}
+                            className="px-6 py-3 border rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition"
                         >
                             Sau
                         </button>
@@ -371,54 +304,43 @@ const MyToursPage: React.FC = () => {
                 )}
             </div>
 
-            {/* Modal hủy booking */}
+            {/* Cancel Modal */}
             {showCancelModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-                        <h3 className="text-xl font-bold text-slate-900 mb-4">
-                            Yêu cầu hủy tour
-                        </h3>
-                        <p className="text-slate-600 mb-4">
-                            Bạn có chắc muốn hủy booking <strong>#{showCancelModal.id}</strong>?
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                        <h3 className="text-2xl font-bold text-slate-900 mb-4">Xác nhận hủy tour</h3>
+                        <p className="text-slate-600 mb-6">
+                            Bạn có chắc chắn muốn hủy booking <strong>#{showCancelModal.id}</strong> - {showCancelModal.tourName}?
                         </p>
-                        <div className="mb-4">
+                        <div className="mb-6">
                             <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Lý do hủy <span className="text-xs text-slate-500">(tùy chọn)</span>
+                                Lý do hủy (khuyến khích)
                             </label>
                             <textarea
                                 value={cancelReason}
                                 onChange={(e) => setCancelReason(e.target.value)}
-                                placeholder="Nhập lý do hủy tour..."
-                                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"
-                                rows={3}
+                                placeholder="Ví dụ: Thay đổi lịch trình, lý do cá nhân..."
+                                rows={4}
+                                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none resize-none"
                             />
                         </div>
                         <div className="flex gap-3">
                             <button
                                 onClick={handleCancelRequest}
                                 disabled={cancelLoading}
-                                className="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                                className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 disabled:opacity-70 transition flex items-center justify-center gap-2"
                             >
-                                {cancelLoading ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Đang gửi...
-                                    </>
-                                ) : (
-                                    <>
-                                        <XCircle className="w-4 h-4" />
-                                        Gửi yêu cầu
-                                    </>
-                                )}
+                                {cancelLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
+                                {cancelLoading ? 'Đang gửi...' : 'Gửi yêu cầu hủy'}
                             </button>
                             <button
                                 onClick={() => {
                                     setShowCancelModal(null);
                                     setCancelReason('');
                                 }}
-                                className="flex-1 border border-slate-300 text-slate-700 py-2 px-4 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+                                className="flex-1 border border-slate-300 py-3 rounded-lg font-medium hover:bg-slate-50 transition"
                             >
-                                Hủy
+                                Quay lại
                             </button>
                         </div>
                     </div>

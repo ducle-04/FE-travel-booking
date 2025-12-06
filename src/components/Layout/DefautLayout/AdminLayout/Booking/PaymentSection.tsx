@@ -1,17 +1,19 @@
 import React from 'react';
-import { DollarSign, CreditCard } from 'lucide-react';
+import { DollarSign, CreditCard, CheckCircle, Link2 } from 'lucide-react';
 import { updatePaymentStatus } from '../../../../../services/bookingService';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2'; // ← Chỉ dùng để confirm đẹp, không thay toast
 import type { Booking } from '../../../../../services/bookingService';
 
 interface Props {
     booking: Booking;
-    theme: 'light' | 'dark';
     onUpdate: (updated: Booking) => void;
     axiosInstance: any;
+    theme?: 'light' | 'dark';
 }
 
-const PaymentSection: React.FC<Props> = ({ booking, onUpdate, axiosInstance }) => {
+const PaymentSection: React.FC<Props> = ({ booking, onUpdate, axiosInstance, theme = 'light' }) => {
+
     const getPaymentMethodBadge = (method?: string) => {
         if (!method) return null;
         return method === 'DIRECT'
@@ -33,19 +35,58 @@ const PaymentSection: React.FC<Props> = ({ booking, onUpdate, axiosInstance }) =
     const formatDateTime = (d: string) => new Date(d).toLocaleString('vi-VN');
 
     const recreateMomoLink = async () => {
+        const result = await Swal.fire({
+            title: 'Tạo lại link MoMo?',
+            text: 'Bạn có chắc muốn tạo lại link thanh toán?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Tạo lại',
+            cancelButtonText: 'Hủy',
+            reverseButtons: true,
+            background: theme === 'dark' ? '#1f2937' : '#ffffff',
+            color: theme === 'dark' ? '#e5e7eb' : '#374151',
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
             const res = await axiosInstance.post(`/payments/momo/create/${booking.id}`);
             window.open(res.data.data, '_blank');
+            toast.success('Đã tạo lại link MoMo thành công!');
         } catch {
             toast.error('Không thể tạo lại link MoMo');
         }
     };
 
     const markAsPaid = async () => {
-        if (!window.confirm('Đánh dấu đã thanh toán?')) return;
+        const result = await Swal.fire({
+            title: 'Đánh dấu đã thanh toán?',
+            html: `
+                <div class="text-left space-y-2">
+                    <p>Bạn chắc chắn muốn đánh dấu booking này là <strong class="text-green-500">ĐÃ THANH TOÁN</strong>?</p>
+                    <p class="text-sm">Mã booking: <strong>#${booking.id}</strong></p>
+                    ${booking.tourName ? `<p class="text-sm">Tour: <strong>${booking.tourName}</strong></p>` : ''}
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Đã nhận tiền',
+            cancelButtonText: 'Hủy',
+            reverseButtons: true,
+            background: theme === 'dark' ? '#1f2937' : '#ffffff',
+            color: theme === 'dark' ? '#e5e7eb' : '#374151',
+            customClass: {
+                confirmButton: 'bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg',
+                cancelButton: 'bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg ml-3',
+            },
+            buttonsStyling: false,
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
             const updated = await updatePaymentStatus(booking.id, 'PAID');
-            onUpdate(updated);
+            onUpdate({ ...booking, ...updated });
             toast.success('Đã cập nhật thanh toán!');
         } catch {
             toast.error('Cập nhật thất bại');
@@ -58,6 +99,7 @@ const PaymentSection: React.FC<Props> = ({ booking, onUpdate, axiosInstance }) =
                 <DollarSign className="text-emerald-400" size={24} />
                 Quản lý thanh toán
             </h3>
+
             <div className="grid grid-cols-2 gap-6 mb-6">
                 <div>
                     <p className="text-sm text-gray-400">Phương thức</p>
@@ -76,12 +118,21 @@ const PaymentSection: React.FC<Props> = ({ booking, onUpdate, axiosInstance }) =
 
             <div className="flex gap-3">
                 {booking.paymentStatus !== 'PAID' && booking.paymentMethod === 'DIRECT' && (
-                    <button onClick={markAsPaid} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold">
+                    <button
+                        onClick={markAsPaid}
+                        className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold transition hover:scale-105"
+                    >
+                        <CheckCircle size={20} />
                         Đánh dấu ĐÃ THANH TOÁN
                     </button>
                 )}
+
                 {booking.paymentMethod === 'MOMO' && booking.paymentStatus === 'PENDING' && (
-                    <button onClick={recreateMomoLink} className="flex-1 bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-xl font-bold">
+                    <button
+                        onClick={recreateMomoLink}
+                        className="flex-1 flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-xl font-bold transition hover:scale-105"
+                    >
+                        <Link2 size={20} />
                         Tạo lại link MoMo
                     </button>
                 )}

@@ -18,7 +18,9 @@ import TourCategoryManagement from "./pages/Admin/TourCategoryManagement";
 import TourDetailPage from "./pages/Admin/TourDetailPage";
 import TourDetailUserPage from "./pages/User/TourDetailUserPage";
 import BookingManagement from "./pages/Admin/BookingManagement";
+import AdminBookingDetailPage from "./pages/Admin/BookingDetailPage";
 import MyBookingsPage from "./pages/User/MyBookingsPage";
+import MyBookingDetailPage from "./pages/User/MyBookingDetailPage";
 import AdminBlogManagement from "./pages/Admin/AdminBlogManagement";
 import HotelManagement from "./pages/Admin/HotelManagement";
 
@@ -43,8 +45,10 @@ const PublicPage = [
     { path: "/admin/tour-categories", component: TourCategoryManagement, layout: AdminLayout },
     { path: "/admin/hotels", component: HotelManagement, layout: AdminLayout },
     { path: "/admin/bookings", component: BookingManagement, layout: AdminLayout },
+    { path: "/admin/bookings/:id", component: AdminBookingDetailPage, layout: AdminLayout },
     { path: "/admin/blogs", component: AdminBlogManagement, layout: AdminLayout },
     { path: "/my-tours", component: MyBookingsPage, layout: UserLayout },
+    { path: "/my-tours/:id", component: MyBookingDetailPage, layout: UserLayout },
 ];
 
 const PrivatePage: any[] = [];

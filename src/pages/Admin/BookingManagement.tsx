@@ -1,131 +1,140 @@
 // src/pages/admin/BookingManagement.tsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 
 import {
     fetchPendingBookings,
+    fetchBookingStats,
 } from '../../services/bookingService';
-import { axiosInstance } from '../../services/bookingService';
-import type { Booking, BookingPage, BookingStatus } from '../../services/bookingService';
+
+import type {
+    Booking,
+    BookingPage,
+    BookingStatus,
+    BookingStats as IBookingStats,
+} from '../../services/bookingService';
 
 import BookingStats from '../../components/Layout/DefautLayout/AdminLayout/Booking/BookingStats';
 import BookingFilters from '../../components/Layout/DefautLayout/AdminLayout/Booking/BookingFilters';
 import BookingTable from '../../components/Layout/DefautLayout/AdminLayout/Booking/BookingTable';
-import BookingModal from '../../components/Layout/DefautLayout/AdminLayout/Booking/BookingModal';
 
 const BookingManagement: React.FC = () => {
     const { theme } = useTheme();
+    const navigate = useNavigate();
+
+    const [searchParams, setSearchParams] = useSearchParams();
+    const urlPage = Number(searchParams.get("page") || 0);
 
     const [bookings, setBookings] = useState<Booking[]>([]);
-    const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [loadingBookings, setLoadingBookings] = useState(true);
+
+    const [stats, setStats] = useState<IBookingStats>({
+        totalBookings: 0,
+        pending: 0,
+        confirmed: 0,
+        cancelRequest: 0,
+        cancelled: 0,
+        rejected: 0,
+        completed: 0,
+    });
+
+    const [loadingStats, setLoadingStats] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<BookingStatus | 'ALL'>('ALL');
-    const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-    const [showModal, setShowModal] = useState(false);
 
-    const loadBookings = useCallback(async (pageNum: number, filterStatus?: BookingStatus[]) => {
-        setLoading(true);
-        setError(null);
+    // Load danh sách booking
+    const loadBookings = useCallback(async (pageNum: number = 0, filterStatus?: BookingStatus[]) => {
+        setLoadingBookings(true);
         try {
             const data: BookingPage = await fetchPendingBookings(pageNum, filterStatus);
             setBookings(data.content);
             setTotalPages(data.totalPages || 1);
-            setPage(pageNum);
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Không thể tải danh sách booking');
+        } catch (err) {
+            console.error('Load bookings error:', err);
         } finally {
-            setLoading(false);
+            setLoadingBookings(false);
         }
     }, []);
 
+    // Load thống kê
+    const loadStats = useCallback(async () => {
+        setLoadingStats(true);
+        try {
+            const data = await fetchBookingStats();
+            setStats(data);
+        } catch (err) {
+            console.error('Load stats error:', err);
+        } finally {
+            setLoadingStats(false);
+        }
+    }, []);
+
+    // Load theo page trên URL
     useEffect(() => {
         const filter = statusFilter === 'ALL' ? undefined : [statusFilter];
-        loadBookings(0, filter);
-    }, [statusFilter, loadBookings]);
+        loadBookings(urlPage, filter);
+        loadStats();
+    }, [urlPage]);
 
-    useEffect(() => {
-        loadBookings(0);
-    }, [loadBookings]);
+    // Khi đổi trạng thái — reset page về 0 nhưng KHÔNG reload data sai
+    const handleStatusFilterChange = (newStatus: BookingStatus | 'ALL') => {
+        setStatusFilter(newStatus);
+        setSearchParams({ page: "0" });
+    };
 
     const filteredBookings = useMemo(() => {
         if (!searchTerm.trim()) return bookings;
         const term = searchTerm.toLowerCase();
         return bookings.filter(b =>
-            (b.userFullname || b.contactName || '').toLowerCase().includes(term) ||
+            b.id.toString().includes(term) ||
             b.tourName.toLowerCase().includes(term) ||
+            (b.userFullname || '').toLowerCase().includes(term) ||
+            (b.contactName || '').toLowerCase().includes(term) ||
             (b.userPhone || b.contactPhone || '').includes(term) ||
-            b.id.toString().includes(term)
+            b.contactEmail.toLowerCase().includes(term)
         );
     }, [bookings, searchTerm]);
 
-    const stats = useMemo(() => ({
-        pending: bookings.filter(b => b.status === 'PENDING').length,
-        confirmed: bookings.filter(b => b.status === 'CONFIRMED').length,
-        cancelRequested: bookings.filter(b => b.status === 'CANCEL_REQUEST').length,
-        completed: bookings.filter(b => b.status === 'COMPLETED').length,
-    }), [bookings]);
+    const handleOpenBookingDetail = (booking: Booking) => {
+        navigate(`/admin/bookings/${booking.id}?page=${urlPage}`);
+    };
 
-    // Xóa hoàn toàn handleDeleteFromTable → để BookingRow tự xử lý
-    const handleUpdateBooking = (updated: Booking) => {
-        setBookings(prev => prev.map(b => b.id === updated.id ? updated : b));
-        setSelectedBooking(updated);
+    const handleBookingDeleted = (id: number) => {
+        setBookings(prev => prev.filter(b => b.id !== id));
+        loadStats();
     };
 
     return (
-        <div className={`min-h-screen p-6 ${theme === 'dark' ? 'bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}>
+        <div className={`min-h-screen p-6 ${theme === 'dark' ? 'bg-gray-900' : 'bg-blue-50'}`}>
             <div className="max-w-7xl mx-auto">
 
-                <div className={`rounded-2xl p-8 mb-8 ${theme === 'dark' ? 'bg-gray-800/70 border border-gray-700 backdrop-blur' : 'bg-white/80 border border-slate-200 backdrop-blur'}`}>
-                    <h1 className={`text-4xl font-bold mb-3 ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>Quản Lý Booking Tour</h1>
-                    <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Theo dõi và xử lý đơn đặt tour nhanh chóng</p>
-                </div>
-
-                {loading && (
+                {(loadingBookings || loadingStats) && (
                     <div className="flex justify-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-cyan-600"></div>
+                        <div className="animate-spin h-12 w-12 border-t-4 border-b-4 border-cyan-600 rounded-full"></div>
                     </div>
                 )}
 
-                {error && (
-                    <div className="bg-red-500/20 border border-red-500/50 text-red-300 px-6 py-4 rounded-xl mb-8">
-                        {error}
-                    </div>
-                )}
-
-                {!loading && !error && (
+                {!loadingBookings && !loadingStats && (
                     <>
                         <BookingStats stats={stats} theme={theme} />
+
                         <BookingFilters
                             searchTerm={searchTerm}
                             setSearchTerm={setSearchTerm}
                             statusFilter={statusFilter}
-                            setStatusFilter={setStatusFilter}
+                            setStatusFilter={handleStatusFilterChange}
                             theme={theme}
                         />
+
                         <BookingTable
                             bookings={filteredBookings}
-                            page={page}
+                            page={urlPage}
                             totalPages={totalPages}
-                            onPageChange={(p) => loadBookings(p, statusFilter === 'ALL' ? undefined : [statusFilter])}
-                            onOpenModal={(b) => {
-                                setSelectedBooking(b);
-                                setShowModal(true);
-                            }}
-                            onDelete={(id) => {
-                                // Chỉ cập nhật danh sách sau khi xóa thành công (BookingRow đã xử lý confirm + toast)
-                                setBookings(prev => prev.filter(b => b.id !== id));
-                            }}
-                            theme={theme}
-                        />
-                        <BookingModal
-                            booking={selectedBooking}
-                            isOpen={showModal}
-                            onClose={() => setShowModal(false)}
-                            onUpdate={handleUpdateBooking}
-                            axiosInstance={axiosInstance}
+                            onPageChange={(p) => setSearchParams({ page: p.toString() })}
+                            onOpenModal={handleOpenBookingDetail}
+                            onDelete={handleBookingDeleted}
                             theme={theme}
                         />
                     </>

@@ -108,6 +108,29 @@ export interface CreateBookingRequest {
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. API Functions – 
 // ─────────────────────────────────────────────────────────────────────────────
+
+// 1. Lấy chi tiết 1 booking bất kỳ (chỉ Admin/Staff)
+export const fetchBookingDetail = async (id: number): Promise<Booking> => {
+    const response = await axiosInstance.get<ApiResponse<Booking>>(`/bookings/${id}`);
+    return response.data.data;
+};
+
+// 2. Lấy thống kê tổng quan booking (dashboard)
+export interface BookingStats {
+    totalBookings: number;
+    pending: number;
+    confirmed: number;
+    cancelRequest: number;
+    cancelled: number;
+    rejected: number;
+    completed: number;
+}
+
+export const fetchBookingStats = async (): Promise<BookingStats> => {
+    const response = await axiosInstance.get<ApiResponse<BookingStats>>('/bookings/stats');
+    return response.data.data;
+};
+
 export const createBooking = async (request: CreateBookingRequest): Promise<Booking> => {
     const response = await axiosInstance.post<ApiResponse<Booking>>('/bookings', request);
     return response.data.data;
@@ -129,7 +152,7 @@ export const fetchMyBookings = async (
 ): Promise<BookingPage> => {
     const params: Record<string, string> = { page: page.toString() };
     if (status && status.length > 0) {
-        params.status = status.join(','); // Spring tự parse List
+        params.status = status.join(',');
     }
     const response = await axiosInstance.get<ApiResponse<BookingPage>>('/bookings/my', { params });
     return response.data.data;
@@ -187,7 +210,7 @@ export const softDeleteBooking = async (id: number): Promise<void> => {
 // Thêm vào bookingService.ts
 export const updatePaymentStatus = async (
     bookingId: number,
-    status: 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED'
+    status: 'PAID' | 'FAILED' | 'CANCELLED' | 'PENDING'
 ): Promise<Booking> => {
     const response = await axiosInstance.patch<ApiResponse<Booking>>(
         `/payments/${bookingId}/status?status=${status}`
