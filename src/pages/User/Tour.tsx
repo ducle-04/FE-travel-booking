@@ -39,6 +39,16 @@ const TourComponent: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
+    useEffect(() => {
+        const keyword = searchParams.get('searchKeyword') || searchParams.get('search');
+        const location = searchParams.get('searchLocation') || searchParams.get('destination');
+        const category = searchParams.get('selectedCategory') || searchParams.get('category');
+
+        if (keyword !== null) setSearchKeyword(keyword);
+        if (location !== null) setSearchLocation(location);
+        if (category !== null) setSelectedCategory(category);
+    }, [searchParams]);
+
     const destinationId = searchParams.get('destinationId');
 
     const isFiltering = () => {

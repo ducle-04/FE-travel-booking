@@ -142,6 +142,24 @@ const bookingByMonth = [
     { month: 'Th10', bookings: 512 }, { month: 'Th11', bookings: 398 }, { month: 'Th12', bookings: 720 },
 ];
 
+const handleExportExcel = async () => {
+    try {
+        const response = await api.get('/admin/dashboard/export/excel', {
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Bao_cao_Dashboard_${new Date().toLocaleDateString('vi-VN')}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (err) {
+        console.error('Lỗi xuất Excel:', err);
+    }
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Component chính
 // ─────────────────────────────────────────────────────────────────────────────
@@ -214,9 +232,12 @@ const Dashboard: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
                     <h1 className="text-2xl font-bold">Dashboard Quản trị</h1>
                     <div className="flex items-center gap-4">
-                        <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition">
-                            <Download size={16} />
-                            Xuất báo cáo
+                        <button
+                            onClick={handleExportExcel}
+                            className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                        >
+                            <Download size={24} />
+                            Xuất báo cáo Excel
                         </button>
                         <div className="relative">
                             <input
@@ -640,7 +661,7 @@ const Dashboard: React.FC = () => {
                                                                 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                                                 }`}>
                                                 {booking.status === 'CONFIRMED' ? 'Đã xác nhận' :
-                                                    booking.status === 'PENDING' ? 'Chờ thanh toán' :
+                                                    booking.status === 'PENDING' ? 'Chờ xác nhận' :
                                                         booking.status === 'CANCEL_REQUEST' ? 'Yêu cầu hủy' :
                                                             booking.status === 'CANCELLED' ? 'Đã hủy' :
                                                                 booking.status === 'COMPLETED' ? 'Hoàn thành' :

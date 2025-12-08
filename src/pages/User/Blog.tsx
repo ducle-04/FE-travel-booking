@@ -297,7 +297,7 @@ export default function BlogListPage() {
                 {/* FAB */}
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="fixed bottom-8 right-8 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white w-48 h-16 rounded-full shadow-2xl hover:scale-110 transition z-50 flex items-center justify-center gap-3"
+                    className="fixed bottom-[120px] right-8 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white w-48 h-16 rounded-full shadow-2xl hover:scale-110 transition z-50 flex items-center justify-center gap-3"
                 >
                     <Plus size={32} />
                     <span className="font-bold">Viết bài</span>

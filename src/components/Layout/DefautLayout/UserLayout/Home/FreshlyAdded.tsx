@@ -1,308 +1,196 @@
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
+import { ChevronLeft, ChevronRight, Star, Clock, MapPin, ArrowRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
-interface TourCard {
-    id: number;
-    title: string;
-    badge: string | null;
-    rating: number;
-    reviews: number;
-    originalPrice?: string;
-    price: string;
-    image: string;
-}
-
-interface CustomVariants {
-    [key: string]: any;
+interface LatestTour {
+    tourId: number;
+    tourName: string;
+    imageUrl: string;
+    description?: string;
+    destinationName: string;
+    createdAt: string;
+    status: "ACTIVE" | "INACTIVE" | "DELETED";
 }
 
 const FreshlyAdded: React.FC = () => {
-    const [currentIndex, setCurrentIndex] = useState<number>(0);
-    const ref = useRef(null);
+    const [tours, setTours] = useState<LatestTour[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    const navigate = useNavigate();
+    const ref = useRef<HTMLDivElement>(null);
     const isInView = useInView(ref, { once: true, margin: '-100px' });
 
-    const tours: TourCard[] = [
-        {
-            id: 1,
-            title: 'Tour Paris 6 Ngày',
-            badge: null,
-            rating: 4.0,
-            reviews: 2,
-            originalPrice: '$2,700',
-            price: '$2,000',
-            image: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&h=600&fit=crop',
-        },
-        {
-            id: 2,
-            title: 'Tour Honolulu 5 Ngày',
-            badge: null,
-            rating: 5.0,
-            reviews: 1,
-            price: '$1,500',
-            image: 'https://images.unsplash.com/photo-1516832970803-325f3fb9d0e9?w=800&h=600&fit=crop',
-        },
-        {
-            id: 3,
-            title: 'Lặn Biển Molokini',
-            badge: null,
-            rating: 0,
-            reviews: 0,
-            price: '$80',
-            image: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&h=600&fit=crop',
-        },
-        {
-            id: 4,
-            title: 'Tour Moscow 7 Ngày',
-            badge: 'Bán Chạy Nhất',
-            rating: 5.0,
-            reviews: 0,
-            originalPrice: '$3,880',
-            price: '$3,500',
-            image: 'https://images.unsplash.com/photo-1513326738677-b964603b136d?w=800&h=600&fit=crop',
-        },
-        {
-            id: 5,
-            title: 'Tour Paisley 3 Ngày',
-            badge: null,
-            rating: 3.5,
-            reviews: 12,
-            price: '$950',
-            image: 'https://images.unsplash.com/photo-1533309902066-3c4f0ca756b6?w=800&h=600&fit=crop',
-        },
-        {
-            id: 6,
-            title: 'Tokyo Hoa Anh Đào',
-            badge: null,
-            rating: 4.8,
-            reviews: 45,
-            originalPrice: '$2,500',
-            price: '$1,899',
-            image: 'https://images.unsplash.com/photo-1551641506-ee3e31c8f9ab?w=800&h=600&fit=crop',
-        },
-        {
-            id: 7,
-            title: 'Tokyo Hoa Anh Đào',
-            badge: null,
-            rating: 4.8,
-            reviews: 45,
-            originalPrice: '$2,500',
-            price: '$1,899',
-            image: 'https://images.unsplash.com/photo-1551641506-ee3e31c8f9ab?w=800&h=600&fit=crop',
-        },
-        {
-            id: 8,
-            title: 'Tokyo Hoa Anh Đào',
-            badge: null,
-            rating: 4.8,
-            reviews: 45,
-            originalPrice: '$2,500',
-            price: '$1,899',
-            image: 'https://images.unsplash.com/photo-1551641506-ee3e31c8f9ab?w=800&h=600&fit=crop',
-        },
-        {
-            id: 9,
-            title: 'Tokyo Hoa Anh Đào',
-            badge: null,
-            rating: 4.8,
-            reviews: 45,
-            originalPrice: '$2,500',
-            price: '$1,899',
-            image: 'https://images.unsplash.com/photo-1551641506-ee3e31c8f9ab?w=800&h=600&fit=crop',
-        },
-    ];
+    const itemsPerView = 5;
+    const maxIndex = Math.max(0, Math.ceil((tours.length || 0) / itemsPerView) - 1);
 
-    const itemsPerView: number = 5;
-    const maxIndex: number = Math.max(0, Math.ceil(tours.length / itemsPerView) - 1);
+    useEffect(() => {
+        const fetchLatestTours = async () => {
+            try {
+                setLoading(true);
+                const res = await axios.get('http://localhost:8080/api/dashboard/latest-tours?limit=10');
+                const activeTours = res.data.filter((tour: LatestTour) => tour.status === "ACTIVE");
+                setTours(activeTours);
+            } catch (err) {
+                console.error('Lỗi tải tour mới nhất:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchLatestTours();
+    }, []);
 
-    const handleNext = (): void => {
-        setCurrentIndex((prev) => (prev < maxIndex ? prev + 1 : 0));
-    };
+    const handleNext = () => setCurrentIndex(prev => prev < maxIndex ? prev + 1 : 0);
+    const handlePrev = () => setCurrentIndex(prev => prev > 0 ? prev - 1 : maxIndex);
 
-    const handlePrev = (): void => {
-        setCurrentIndex((prev) => (prev > 0 ? prev - 1 : maxIndex));
-    };
-
-    const visibleTours: TourCard[] = tours.slice(
+    const visibleTours = tours.slice(
         currentIndex * itemsPerView,
-        Math.min((currentIndex + 1) * itemsPerView, tours.length)
+        (currentIndex + 1) * itemsPerView
     );
 
-    const headerVariants: CustomVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.4, 2, 0.6, 1] } },
+    const formatTime = (date: string) => {
+        return formatDistanceToNow(new Date(date), { addSuffix: true, locale: vi });
     };
 
-    const cardVariants: CustomVariants = {
-        hidden: { opacity: 0, y: 50 },
-        visible: (index: number) => ({
-            opacity: 1,
-            y: 0,
-            transition: {
-                delay: index * 0.2,
-                duration: 0.6,
-                ease: [0.4, 2, 0.6, 1],
-            },
-        }),
-    };
-
-    const imageVariants: CustomVariants = {
-        initial: { scale: 1 },
-        hover: { scale: 1.1, transition: { duration: 0.5 } },
-    };
-
-    const overlayVariants: CustomVariants = {
-        initial: { background: 'rgba(0, 0, 0, 0.2)' },
-        hover: { background: 'rgba(0, 0, 0, 0.3)', transition: { duration: 0.5 } },
-    };
-
-    const renderStars = (rating: number, reviews: number): React.ReactNode => {
-        if (rating === 0) return <div className="h-5"></div>;
+    if (loading) {
         return (
-            <div className="flex items-center gap-1">
-                <div className="flex">
-                    {[...Array(5)].map((_: any, i: number) => (
-                        <Star
-                            key={i}
-                            className={`w-3.5 h-3.5 ${i < Math.floor(rating)
-                                ? 'fill-yellow-400 text-yellow-400'
-                                : i < rating
-                                    ? 'fill-yellow-400 text-yellow-400 opacity-50'
-                                    : 'text-gray-300'
-                                }`}
-                        />
-                    ))}
+            <section className="py-20 bg-white">
+                <div className="max-w-7xl mx-auto px-6 text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent"></div>
+                    <p className="mt-4 text-gray-600">Đang tải tour mới nhất...</p>
                 </div>
-                <span className="text-xs text-gray-600">({reviews})</span>
-            </div>
+            </section>
         );
-    };
+    }
+
+    if (tours.length === 0) return null;
 
     return (
-        <div className="bg-gradient-to-br from-slate-50 to-slate-100 py-16 px-4 sm:px-6 lg:px-8">
-            {/* Tiêu đề */}
-            <motion.div
-                variants={headerVariants}
-                initial="hidden"
-                animate={isInView ? 'visible' : 'hidden'}
-                className="max-w-7xl mx-auto text-center mb-12"
-            >
-                <h1 className="text-5xl md:text-6xl font-bold mb-2">
-                    Mới <span className="text-cyan-500">Thêm</span>
-                </h1>
-            </motion.div>
-
-            {/* Carousel Container */}
-            <div ref={ref} className="max-w-7xl mx-auto relative">
-                {/* Navigation Buttons */}
-                <button
-                    onClick={handlePrev}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-400 hover:text-cyan-500 transition-all duration-300 hover:bg-cyan-50"
+        <section className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Tiêu đề */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="text-center mb-12"
                 >
-                    <ChevronLeft className="w-6 h-6" />
-                </button>
-                <button
-                    onClick={handleNext}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-400 hover:text-cyan-500 transition-all duration-300 hover:bg-cyan-50"
-                >
-                    <ChevronRight className="w-6 h-6" />
-                </button>
-
-                {/* Tours Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 px-4">
-                    {visibleTours.map((tour: TourCard, idx: number) => (
-                        <motion.div
-                            key={tour.id}
-                            custom={idx}
-                            variants={cardVariants}
-                            initial="hidden"
-                            animate={isInView ? 'visible' : 'hidden'}
-                            className="group cursor-pointer"
+                    <h2 className="text-5xl md:text-6xl font-bold mb-6">
+                        Tour <span className="text-cyan-500">Mới Thêm</span>
+                    </h2>
+                    <p className="text-lg text-gray-600 mb-8">
+                        Những hành trình vừa được cập nhật – khám phá ngay hôm nay!
+                    </p>
+                    <motion.div whileHover={{ x: 8 }}>
+                        <Link
+                            to="/tours"
+                            className="inline-flex items-center gap-2 px-6 py-3 text-gray-700 font-semibold border-b-2 border-gray-400 hover:border-cyan-500 hover:text-cyan-500 transition-all"
                         >
-                            {/* Card Container */}
-                            <div className="rounded-2xl overflow-hidden bg-white shadow-md h-[360px] flex flex-col transition-all duration-300 hover:shadow-xl">
-                                {/* Image */}
-                                <motion.div
-                                    variants={imageVariants}
-                                    initial="initial"
-                                    whileHover="hover"
-                                    className="relative h-48 overflow-hidden"
-                                >
-                                    <div
-                                        className="absolute inset-0"
-                                        style={{
-                                            backgroundImage: `url(${tour.image})`,
-                                            backgroundSize: 'cover',
-                                            backgroundPosition: 'center',
-                                        }}
-                                    ></div>
-                                    <motion.div
-                                        variants={overlayVariants}
-                                        initial="initial"
-                                        whileHover="hover"
-                                        className="absolute inset-0"
-                                    ></motion.div>
+                            Xem tất cả tour mới <ArrowRight className="w-5 h-5" />
+                        </Link>
+                    </motion.div>
+                </motion.div>
 
-                                    {/* Badge */}
-                                    {tour.badge && (
-                                        <motion.div
-                                            variants={cardVariants}
-                                            custom={idx}
-                                            initial="hidden"
-                                            animate={isInView ? 'visible' : 'hidden'}
-                                            className="absolute top-3 right-3 z-10"
-                                        >
-                                            <span className="bg-cyan-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                                                {tour.badge}
-                                            </span>
-                                        </motion.div>
-                                    )}
-                                </motion.div>
+                <motion.div ref={ref} className="relative">
+                    {/* Nút điều hướng */}
+                    {tours.length > itemsPerView && (
+                        <>
+                            <button
+                                onClick={handlePrev}
+                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-600 hover:text-cyan-600 transition-all hover:bg-cyan-50"
+                            >
+                                <ChevronLeft className="w-6 h-6" />
+                            </button>
+                            <button
+                                onClick={handleNext}
+                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-600 hover:text-cyan-600 transition-all hover:bg-cyan-50"
+                            >
+                                <ChevronRight className="w-6 h-6" />
+                            </button>
+                        </>
+                    )}
 
-                                {/* Content */}
-                                <div className="p-4 flex flex-col justify-between flex-1">
-                                    <div>
-                                        <motion.h3
-                                            whileHover={{ x: 5 }}
-                                            transition={{ duration: 0.3 }}
-                                            className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-cyan-600 transition-colors duration-300"
-                                        >
-                                            {tour.title}
-                                        </motion.h3>
-                                        {renderStars(tour.rating, tour.reviews)}
+                    {/* Grid tour */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                        {visibleTours.map((tour, idx) => (
+                            <motion.div
+                                key={tour.tourId}
+                                custom={idx}
+                                initial={{ opacity: 0, y: 50 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: idx * 0.15, duration: 0.6 }}
+                                onClick={() => navigate(`/tour/${tour.tourId}`)}
+                                className="group cursor-pointer"
+                            >
+                                <div className="rounded-2xl overflow-hidden bg-white shadow-md h-96 flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
+                                    {/* Ảnh */}
+                                    <div className="relative h-52 overflow-hidden">
+                                        <img
+                                            src={tour.imageUrl || '/images/placeholder-tour.jpg'}
+                                            alt={tour.tourName}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                        />
+                                        <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                                            MỚI
+                                        </div>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                     </div>
-                                    <div className="space-y-1">
-                                        {tour.originalPrice && (
-                                            <p className="text-xs text-gray-400 line-through">
-                                                {tour.originalPrice}
-                                            </p>
-                                        )}
-                                        <p className="text-lg font-bold text-cyan-600">
-                                            {tour.price}
-                                        </p>
+
+                                    {/* Nội dung */}
+                                    <div className="p-5 flex flex-col justify-between flex-1">
+                                        <div>
+                                            <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                                                <Clock className="w-4 h-4 text-cyan-500" />
+                                                <span>{formatTime(tour.createdAt)}</span>
+                                            </div>
+
+                                            <h3 className="text-base font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-cyan-600 transition">
+                                                {tour.tourName}
+                                            </h3>
+
+                                            <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                                                <MapPin className="w-4 h-4 text-cyan-500" />
+                                                <span className="line-clamp-1">{tour.destinationName}</span>
+                                            </div>
+
+                                            {tour.description && (
+                                                <p className="text-xs text-gray-600 line-clamp-2">
+                                                    {tour.description}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 flex justify-end">
+                                            <span className="text-cyan-600 font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all">
+                                                Xem chi tiết <ArrowRight className="w-4 h-4" />
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
+                            </motion.div>
+                        ))}
+                    </div>
 
-                {/* Pagination Dots */}
-                <div className="flex justify-center gap-2 mt-12">
-                    {[...Array(Math.ceil(tours.length / itemsPerView))].map(
-                        (_: any, idx: number) => (
-                            <motion.button
-                                key={idx}
-                                onClick={() => setCurrentIndex(idx)}
-                                whileHover={{ scale: 1.2 }}
-                                transition={{ duration: 0.3 }}
-                                className={`w-3 h-3 rounded-full transition-all duration-300 ${idx === currentIndex ? 'bg-cyan-500 w-8' : 'bg-gray-300 hover:bg-gray-400'}`}
-                            />
-                        )
+                    {/* Dots */}
+                    {tours.length > itemsPerView && (
+                        <div className="flex justify-center gap-3 mt-12">
+                            {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => setCurrentIndex(i)}
+                                    className={`transition-all rounded-full ${i === currentIndex ? 'bg-cyan-500 w-10 h-3' : 'bg-gray-300 w-3 h-3 hover:bg-gray-500'}`}
+                                />
+                            ))}
+                        </div>
                     )}
-                </div>
+                </motion.div>
             </div>
-        </div>
+        </section>
     );
 };
 

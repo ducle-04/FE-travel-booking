@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -115,13 +115,9 @@ const TourDetailUserPage: React.FC = () => {
         return 'from-indigo-500 to-purple-600';
     };
 
-    const hasFetched = useRef(false);
     // === LẤY DỮ LIỆU CHUNG ===
     useEffect(() => {
         if (!id) return;
-
-        if (hasFetched.current) return;   // ❌ Nếu đã fetch rồi, không fetch nữa
-        hasFetched.current = true;        // ✔️ Đánh dấu đã fetch
 
         fetchTourDetailData();            // Gọi API 1 lần duy nhất
     }, [id]);
