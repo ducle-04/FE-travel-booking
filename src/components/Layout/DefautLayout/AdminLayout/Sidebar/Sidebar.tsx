@@ -33,7 +33,7 @@ const menu = [
     { label: "Quản lý Điểm Đến", icon: <FaGlobeAsia className="w-5 h-5" />, path: "/admin/destinations" },
     { label: "Quản lý Bài Viết", icon: <FaNewspaper className="w-5 h-5" />, path: "/admin/blogs" },
     { label: "Quản lý Banner", icon: <FaFlag className="w-5 h-5" />, path: "/admin/banners" },
-    { label: "Phản Hồi / Đánh Giá", icon: <FaRegComments className="w-5 h-5" />, path: "/admin/reviews" },
+    { label: "Phản Hồi", icon: <FaRegComments className="w-5 h-5" />, path: "/admin/support" },
     { label: "Cài Đặt Hệ Thống", icon: <FaCog className="w-5 h-5" />, path: "/admin/settings" },
     { label: "Tài Khoản Admin", icon: <FaUserShield className="w-5 h-5" />, path: "/admin/account" }
 ];

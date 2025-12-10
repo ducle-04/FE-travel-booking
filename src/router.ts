@@ -23,6 +23,7 @@ import MyBookingsPage from "./pages/User/MyBookingsPage";
 import MyBookingDetailPage from "./pages/User/MyBookingDetailPage";
 import AdminBlogManagement from "./pages/Admin/AdminBlogManagement";
 import HotelManagement from "./pages/Admin/HotelManagement";
+import SupportDashboard from "./pages/Admin/SupportDashboard";
 
 const PublicPage = [
     { path: "/", component: Home, layout: UserLayout },
@@ -49,6 +50,7 @@ const PublicPage = [
     { path: "/admin/blogs", component: AdminBlogManagement, layout: AdminLayout },
     { path: "/my-tours", component: MyBookingsPage, layout: UserLayout },
     { path: "/my-tours/:id", component: MyBookingDetailPage, layout: UserLayout },
+    { path: "/admin/support", component: SupportDashboard, layout: AdminLayout },
 ];
 
 const PrivatePage: any[] = [];
