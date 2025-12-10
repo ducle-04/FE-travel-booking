@@ -3,7 +3,7 @@ import { Calendar, Users, Heart, Eye, Car, User, CreditCard, Wallet } from 'luci
 import { createBooking } from '../../../../../services/bookingService';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
-import axios from 'axios'; // Đã có trong bookingService, nhưng để chắc thì import
+import axios from 'axios';
 
 interface TransportOption {
     name: string;
@@ -11,11 +11,17 @@ interface TransportOption {
     icon: React.ReactNode;
 }
 
+interface StartDateAvailability {
+    date: string;           // yyyy-MM-dd
+    formattedDate: string; // ví dụ: "15/12/2025 (Thứ Hai)"
+    remainingSeats: number;
+    available: boolean;
+}
+
 interface TourBookingCardProps {
     price: number;
     maxParticipants: number;
-    totalParticipants: number;
-    startDates: string[];
+    startDateAvailability: StartDateAvailability[];
     transports: TransportOption[];
     date: string;
     setDate: (date: string) => void;
@@ -32,9 +38,21 @@ interface TourBookingCardProps {
 }
 
 const TourBookingCard: React.FC<TourBookingCardProps> = ({
-    price, maxParticipants, totalParticipants, startDates, transports = [],
-    date, setDate, people, setPeople, notes, setNotes, onBooking,
-    savedToWishlist, setSavedToWishlist, tourId, tourName, views,
+    price,
+    startDateAvailability,
+    transports = [],
+    date,
+    setDate,
+    people,
+    setPeople,
+    notes,
+    setNotes,
+    onBooking,
+    savedToWishlist,
+    setSavedToWishlist,
+    tourId,
+    tourName,
+    views,
 }) => {
     const token = typeof window !== 'undefined'
         ? localStorage.getItem('jwtToken') || sessionStorage.getItem('jwtToken')
@@ -56,12 +74,31 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
     const formatCurrency = (amount: number) =>
         new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
-    const remainingSeats = maxParticipants - totalParticipants;
-    const maxPeopleSelect = Math.min(10, remainingSeats);
+    // ⭐ Tính số chỗ còn lại theo ngày đã chọn
+    const selectedDateInfo = startDateAvailability.find(d => d.date === date);
+    const remainingSeats = selectedDateInfo?.remainingSeats ?? 0;
 
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const availableDates = startDates.map(d => new Date(d)).filter(d => d >= today).sort((a, b) => a.getTime() - b.getTime());
+    // ⭐ Danh sách ngày khả dụng (từ hôm nay trở đi)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const availableDates = startDateAvailability
+        .filter(d => new Date(d.date) >= today)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
     const hasAvailableDates = availableDates.length > 0;
+
+    // ⭐ FIX 1: Tự động điều chỉnh số người khi đổi ngày
+    useEffect(() => {
+        if (remainingSeats === 0) {
+            setPeople(1); // reset về 1 để tránh lỗi UI
+        } else if (people > remainingSeats) {
+            setPeople(remainingSeats); // không cho vượt quá chỗ còn lại
+        }
+    }, [remainingSeats, setPeople]);
+
+    // ⭐ Giới hạn số người tối đa có thể chọn (tối đa 10 hoặc chỗ còn lại)
+    const maxPeopleSelect = remainingSeats === 0 ? 0 : Math.min(10, remainingSeats);
 
     const basePrice = price * people;
     const transportPrice = selectedTransport ? selectedTransport.price * people : 0;
@@ -69,6 +106,7 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
 
     const handleBooking = async () => {
         if (!date) return toast.error('Vui lòng chọn ngày khởi hành');
+        if (remainingSeats === 0) return toast.error('Ngày này đã hết chỗ');
         if (people > remainingSeats) return toast.error(`Chỉ còn ${remainingSeats} chỗ trống`);
 
         if (!token) {
@@ -86,7 +124,7 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
             html: `
                 <div class="text-left space-y-3 text-sm">
                     <p><strong>Tour:</strong> ${tourName}</p>
-                    <p><strong>Ngày:</strong> ${new Date(date).toLocaleDateString('vi-VN')}</p>
+                    <p><strong>Ngày:</strong> ${selectedDateInfo?.formattedDate || new Date(date).toLocaleDateString('vi-VN')}</p>
                     <p><strong>Số người:</strong> ${people}</p>
                     ${selectedTransport ? `<p><strong>Phương tiện:</strong> ${selectedTransport.name} (+${formatCurrency(selectedTransport.price * people)})</p>` : ''}
                     <p><strong>Thanh toán:</strong> ${paymentMethod === 'DIRECT' ? 'Trực tiếp (tại quầy)' : 'MoMo (online)'}</p>
@@ -115,7 +153,6 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
         setSubmitting(true);
 
         try {
-            // Bước 1: Tạo booking trước
             const bookingResponse = await createBooking({
                 tourId,
                 startDate: date,
@@ -132,19 +169,14 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
 
             const bookingId = bookingResponse.id;
 
-            // Nếu chọn MoMo → gọi API tạo link thanh toán
             if (paymentMethod === 'MOMO') {
                 toast.info('Đang chuyển sang cổng thanh toán MoMo...');
-
                 const res = await axios.post('http://localhost:8080/api/payments/momo/create/' + bookingId);
-                const payUrl: string = res.data.data; // backend trả về URL
-
-                // Chuyển hướng sang MoMo
+                const payUrl: string = res.data.data;
                 window.location.href = payUrl;
-                return; // Dừng lại, không chạy tiếp
+                return;
             }
 
-            // Nếu là DIRECT → chỉ thông báo thành công
             toast.success('Đặt tour thành công! Chúng tôi sẽ liên hệ sớm nhất.');
             onBooking();
 
@@ -153,7 +185,6 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
                 setGuestInfo({ contactName: '', contactEmail: '', contactPhone: '' });
                 setShowGuestForm(false);
             }
-
         } catch (err: any) {
             const msg = err.response?.data?.message || 'Đặt tour thất bại. Vui lòng thử lại!';
             toast.error(msg);
@@ -181,18 +212,21 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
                             Ngày khởi hành
                         </label>
                         {hasAvailableDates ? (
-                            <select value={date} onChange={e => setDate(e.target.value)}
-                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600">
+                            <select
+                                value={date}
+                                onChange={e => setDate(e.target.value)}
+                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600"
+                            >
                                 <option value="">-- Chọn ngày --</option>
-                                {availableDates.map(d => {
-                                    const str = d.toISOString().split('T')[0];
-                                    const fmt = d.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-                                    return <option key={str} value={str}>{fmt}</option>;
-                                })}
+                                {availableDates.map(d => (
+                                    <option key={d.date} value={d.date}>
+                                        {d.formattedDate} {d.remainingSeats === 0 ? '(Hết chỗ)' : `(Còn ${d.remainingSeats} chỗ)`}
+                                    </option>
+                                ))}
                             </select>
                         ) : (
                             <div className="w-full py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-center">
-                                Chưa có lịch khởi hành
+                                Chưa có lịch khởi hành hoặc tất cả đã hết chỗ
                             </div>
                         )}
                     </div>
@@ -232,15 +266,24 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
                             <Users className="w-5 h-5 text-blue-600" />
                             Số người
                         </label>
-                        <select value={people} onChange={e => setPeople(Number(e.target.value))}
-                            disabled={!date || remainingSeats === 0}
-                            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600">
-                            {[...Array(maxPeopleSelect)].map((_, i) => (
-                                <option key={i + 1} value={i + 1} disabled={i + 1 > remainingSeats}>
-                                    {i + 1} người {i + 1 > remainingSeats && '(Hết chỗ)'}
-                                </option>
-                            ))}
-                        </select>
+                        {remainingSeats === 0 ? (
+                            <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-center font-medium">
+                                Hết chỗ cho ngày này
+                            </div>
+                        ) : (
+                            <select
+                                value={people}
+                                onChange={e => setPeople(Number(e.target.value))}
+                                disabled={!date || remainingSeats === 0}
+                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600"
+                            >
+                                {[...Array(maxPeopleSelect)].map((_, i) => (
+                                    <option key={i + 1} value={i + 1}>
+                                        {i + 1} người
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     {/* PHƯƠNG THỨC THANH TOÁN – ĐẸP HƠN */}
@@ -302,12 +345,14 @@ const TourBookingCard: React.FC<TourBookingCardProps> = ({
                         value={notes} onChange={e => setNotes(e.target.value)}
                         className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600 resize-none" />
 
-                    <button onClick={handleBooking}
+                    <button
+                        onClick={handleBooking}
                         disabled={submitting || !date || remainingSeats === 0 || people < 1}
                         className={`w-full text-white py-5 rounded-lg font-bold text-lg transition transform hover:scale-105 ${paymentMethod === 'MOMO'
                             ? 'bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700'
                             : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
-                            } disabled:opacity-60 disabled:cursor-not-allowed`}>
+                            } disabled:opacity-60 disabled:cursor-not-allowed`}
+                    >
                         {submitting ? 'Đang xử lý...' : paymentMethod === 'MOMO' ? 'THANH TOÁN QUA MOMO' : 'ĐẶT TOUR NGAY'}
                     </button>
 

@@ -1,9 +1,9 @@
 import React from 'react';
 import BookingRow from './BookingRow';
+import Pagination from '../UserManagement/Pagination';
 import type { Booking } from '../../../../../services/bookingService';
 
 interface Props {
-
     bookings: Booking[];
     page: number;
     totalPages: number;
@@ -56,22 +56,16 @@ const BookingTable: React.FC<Props> = ({
                 </table>
             </div>
 
-            {totalPages > 1 && (
-                <div className={`px-6 py-5 border-t ${theme === 'dark' ? 'bg-gray-900/50 border-gray-700' : 'bg-gray-50 border-gray-200'} flex items-center justify-between`}>
-                    <button onClick={() => onPageChange(page - 1)} disabled={page === 0}
-                        className={`px-6 py-3 rounded-xl font-medium transition ${page === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-600 hover:text-white'} ${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-700 border'}`}>
-                        Trước
-                    </button>
-                    <span className={`font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                        Trang {page + 1} / {totalPages}
-                    </span>
-                    <button onClick={() => onPageChange(page + 1)} disabled={page >= totalPages - 1}
-                        className={`px-6 py-3 rounded-xl font-medium transition ${page >= totalPages - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-600 hover:text-white'} ${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-700 border'}`}>
-                        Sau
-                    </button>
-                </div>
-            )}
+            {/* ⭐ DÙNG COMPONENT PAGINATION CHUNG ⭐ */}
+            <Pagination
+                currentPage={page + 1} // Pagination dùng 1-based, bạn đang dùng 0-based → +1
+                totalPages={totalPages}
+                setCurrentPage={(newPage) => onPageChange(newPage - 1)} // Chuyển lại về 0-based
+                loading={false} // Nếu cần disable khi loading, bạn truyền từ parent
+                filteredUsersLength={bookings.length} // Hoặc truyền totalItems từ API nếu có
+            />
 
+            {/* Thông báo khi không có booking */}
             {bookings.length === 0 && (
                 <div className="text-center py-16 text-xl text-gray-500">
                     Không có booking nào phù hợp

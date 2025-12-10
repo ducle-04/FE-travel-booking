@@ -186,7 +186,7 @@ const TourComponent: React.FC = () => {
     const sortedTours = [...tours].sort((a, b) => {
         if (sortBy === 'price') return a.price - b.price;
         if (sortBy === 'rating') return (b.averageRating || 0) - (a.averageRating || 0);
-        if (sortBy === 'popular') return (b.totalParticipants || 0) - (a.totalParticipants || 0);
+        if (sortBy === 'popular') return b.bookingsCount - a.bookingsCount;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
@@ -527,7 +527,7 @@ const TourComponent: React.FC = () => {
                                                             </span>
                                                             <span className="flex items-center gap-1">
                                                                 <Users className="w-4 h-4" />
-                                                                {tour.totalParticipants} khách tham gia
+                                                                {tour.bookingsCount} lượt đặt {/* ← ĐÃ SỬA */}
                                                             </span>
                                                             <span className="flex items-center gap-1 ml-auto">
                                                                 <Eye className="w-4 h-4" />
@@ -570,7 +570,7 @@ const TourComponent: React.FC = () => {
                                                             </span>
                                                             <span className="flex items-center gap-1">
                                                                 <Users className="w-4 h-4" />
-                                                                {tour.totalParticipants} khách
+                                                                {tour.bookingsCount} lượt đặt
                                                             </span>
                                                             <span className="flex items-center gap-1 ml-auto">
                                                                 <Eye className="w-4 h-4" />

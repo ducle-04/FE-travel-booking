@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../../../../context/ThemeContext';
 
 interface PaginationProps {
-    currentPage: number;
+    currentPage: number;        // 1-based
     totalPages: number;
     setCurrentPage: (page: number) => void;
     loading: boolean;
@@ -17,7 +17,28 @@ const Pagination: React.FC<PaginationProps> = ({
     loading,
     filteredUsersLength,
 }) => {
-    const { theme } = useTheme(); // Lấy trạng thái theme
+    const { theme } = useTheme();
+
+    // Logic mới: luôn hiện 3 số, trang hiện tại ở cuối, "đẩy" số cũ ra khi nhảy
+    const getDisplayedPages = () => {
+        if (totalPages <= 4) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
+        }
+
+        // Tính trang đầu tiên trong bộ 3 số (trang hiện tại là số cuối cùng trong bộ 3)
+        const startPage = Math.max(1, currentPage - 2);
+
+        const pages = [];
+        for (let i = startPage; i <= Math.min(startPage + 2, totalPages); i++) {
+            pages.push(i);
+        }
+
+        return pages;
+    };
+
+    const displayedPages = getDisplayedPages();
+
+    if (totalPages <= 1) return null;
 
     return (
         <div
@@ -25,10 +46,7 @@ const Pagination: React.FC<PaginationProps> = ({
                 }`}
         >
             <div className="flex items-center gap-2">
-                <span
-                    className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                        }`}
-                >
+                <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                     Hàng mỗi trang
                 </span>
                 <button
@@ -39,94 +57,78 @@ const Pagination: React.FC<PaginationProps> = ({
                 >
                     10 <ChevronDown size={14} />
                 </button>
-                <span
-                    className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                        }`}
-                >
+                <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                     của {filteredUsersLength} hàng
                 </span>
             </div>
+
             <div className="flex items-center gap-1">
+                {/* Trang trước */}
                 <button
-                    className={`p-1.5 rounded ${theme === 'dark'
-                            ? 'text-gray-300 hover:bg-gray-700'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
                     onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
                     disabled={currentPage === 1 || loading}
-                    title="Trang trước"
+                    className={`p-1.5 rounded ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'} disabled:opacity-50`}
                 >
                     <ChevronLeft size={16} />
                 </button>
+
+                {/* Trang đầu */}
                 <button
-                    className={`p-1.5 rounded ${theme === 'dark'
-                            ? 'text-gray-300 hover:bg-gray-700'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
                     onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1 || loading}
-                    title="Trang đầu"
+                    className={`p-1.5 rounded ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'} disabled:opacity-50`}
                 >
                     &laquo;
                 </button>
-                {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => i + 1).map((page) => (
+
+                {/* Hiển thị 3 số liên tiếp, trang hiện tại ở cuối */}
+                {displayedPages.map((pageNum) => (
                     <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-7 h-7 rounded flex items-center justify-center text-sm ${currentPage === page
-                                ? theme === 'dark'
-                                    ? 'bg-slate-700 text-white'
-                                    : 'bg-slate-800 text-white'
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        disabled={loading}
+                        className={`w-7 h-7 rounded flex items-center justify-center text-sm font-medium transition ${currentPage === pageNum
+                                ? theme === 'dark' ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'
                                 : theme === 'dark'
                                     ? 'text-gray-300 hover:bg-gray-700'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                            } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={loading}
-                        title={`Trang ${page}`}
+                                    : 'text-gray-700 hover:bg-gray-100'
+                            } disabled:opacity-50`}
                     >
-                        {page}
+                        {pageNum}
                     </button>
                 ))}
-                {totalPages > 3 && (
+
+                {/* ... và trang cuối (chỉ hiện khi trang hiện tại không gần cuối) */}
+                {currentPage < totalPages - 2 && totalPages > 4 && (
                     <>
-                        <span
-                            className={`px-1 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-                                }`}
-                        >
-                            ...
-                        </span>
+                        <span className={`px-1 text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>...</span>
                         <button
                             onClick={() => setCurrentPage(totalPages)}
-                            className={`w-7 h-7 rounded flex items-center justify-center text-sm ${theme === 'dark'
-                                    ? 'text-gray-300 hover:bg-gray-700'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                             disabled={loading}
-                            title={`Trang ${totalPages}`}
+                            className={`w-7 h-7 rounded flex items-center justify-center text-sm font-medium transition ${theme === 'dark'
+                                    ? 'text-gray-300 hover:bg-gray-700'
+                                    : 'text-gray-700 hover:bg-gray-100'
+                                } disabled:opacity-50`}
                         >
                             {totalPages}
                         </button>
                     </>
                 )}
+
+                {/* Trang sau */}
                 <button
-                    className={`p-1.5 rounded ${theme === 'dark'
-                            ? 'text-gray-300 hover:bg-gray-700'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
                     onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
                     disabled={currentPage === totalPages || loading}
-                    title="Trang sau"
+                    className={`p-1.5 rounded ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'} disabled:opacity-50`}
                 >
                     <ChevronRight size={16} />
                 </button>
+
+                {/* Trang cuối */}
                 <button
-                    className={`p-1.5 rounded ${theme === 'dark'
-                            ? 'text-gray-300 hover:bg-gray-700'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
                     onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages || loading}
-                    title="Trang cuối"
+                    className={`p-1.5 rounded ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'} disabled:opacity-50`}
                 >
                     &raquo;
                 </button>

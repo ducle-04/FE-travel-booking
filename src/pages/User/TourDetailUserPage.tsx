@@ -41,7 +41,6 @@ interface Tour {
     price: number;
     description: string;
     averageRating: number;
-    totalParticipants: number;
     maxParticipants: number;
     status: 'ACTIVE' | 'INACTIVE';
     createdAt: string;
@@ -133,7 +132,8 @@ const TourDetailUserPage: React.FC = () => {
             const dates = await fetchStartDateAvailability(id!);
             setStartDateAvailability(dates);
 
-            const availableDates = dates.filter(d => d.available);
+            // ⭐ CHỌN NGÀY TỰ ĐỘNG ĐÚNG CÁCH (dựa trên availability + còn chỗ)
+            const availableDates = dates.filter(d => d.available && new Date(d.date) >= new Date());
             if (availableDates.length > 0) {
                 setDate(availableDates[0].date);
             }
@@ -165,20 +165,16 @@ const TourDetailUserPage: React.FC = () => {
         if (tour) fetchReviews(0);
     }, [tour]);
 
-    // === CHỌN NGÀY TỰ ĐỘNG ===
     useEffect(() => {
-        if (tour?.startDates && tour.startDates.length > 0) {
-            const now = new Date();
-            now.setHours(0, 0, 0, 0);
-            const futureDates = tour.startDates
-                .map(d => new Date(d))
-                .filter(d => d >= now)
-                .sort((a, b) => a.getTime() - b.getTime());
-            if (futureDates.length > 0) {
-                setDate(futureDates[0].toISOString().split('T')[0]);
+        const selected = startDateAvailability.find(d => d.date === date);
+        if (selected) {
+            if (selected.remainingSeats === 0) {
+                setPeople(1); // reset về 1 để tránh lỗi hiển thị
+            } else if (people > selected.remainingSeats) {
+                setPeople(selected.remainingSeats); // không cho vượt quá chỗ còn lại
             }
         }
-    }, [tour?.startDates]);
+    }, [date, startDateAvailability, people]);
 
     const openVideo = (url: string) => { setSelectedVideo(url); setShowVideoModal(true); };
     const openGallery = () => setShowGalleryModal(true);
@@ -251,32 +247,60 @@ const TourDetailUserPage: React.FC = () => {
                             </p>
 
                             <div className="flex flex-wrap gap-3">
-                                {startDateAvailability.map((item, index) => {
-                                    const isSelected = date === item.date;
-                                    const disabled = !item.available;
+                                {startDateAvailability
+                                    .filter(item => {
+                                        const itemDate = new Date(item.date);
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        itemDate.setHours(0, 0, 0, 0);
+                                        return itemDate >= today;
+                                    })
+                                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                                    .map((item, index) => {
+                                        const isSelected = date === item.date;
+                                        const disabled = !item.available;
 
-                                    return (
-                                        <button
-                                            key={index}
-                                            disabled={disabled}
-                                            onClick={() => setDate(item.date)}
-                                            className={`
-                                                px-6 py-3.5 rounded-xl font-medium text-sm transition-all shadow-lg border-2
-                                                ${isSelected
-                                                    ? 'bg-white text-gray-900 border-white scale-105 shadow-xl'
-                                                    : 'bg-white/20 backdrop-blur-md text-white border-white/40 hover:bg-white/35 hover:border-white/70'
-                                                }
-                                                ${disabled ? 'opacity-40 cursor-not-allowed' : ''}
-                                            `}
-                                        >
-                                            {item.formattedDate}
-                                            <div className="text-xs mt-1 opacity-80">
-                                                {item.available ? `Còn ${item.remainingSeats} chỗ` : 'Hết chỗ'}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
+                                        return (
+                                            <button
+                                                key={index}
+                                                disabled={disabled}
+                                                onClick={() => setDate(item.date)}
+                                                className={`
+                        px-6 py-3.5 rounded-xl font-medium text-sm transition-all shadow-lg border-2
+                        ${isSelected
+                                                        ? 'bg-white text-gray-900 border-white scale-105 shadow-xl'
+                                                        : 'bg-white/20 backdrop-blur-md text-white border-white/40 hover:bg-white/35 hover:border-white/70'
+                                                    }
+                        ${disabled ? 'opacity-40 cursor-not-allowed' : ''}
+                    `}
+                                            >
+                                                {item.formattedDate}
+                                                <div className="text-xs mt-1 opacity-80">
+                                                    {item.available ? `Còn ${item.remainingSeats} chỗ` : 'Hết chỗ'}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                             </div>
+
+                            {/* Thông báo nếu không còn ngày nào khả dụng */}
+                            {(() => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+
+                                const hasUpcomingDates = startDateAvailability.some(item => {
+                                    const itemDate = new Date(item.date);
+                                    itemDate.setHours(0, 0, 0, 0);
+                                    return itemDate >= today;
+                                });
+
+                                return !hasUpcomingDates && (
+                                    <div className="mt-5 text-white bg-red-600/20 backdrop-blur px-6 py-4 rounded-xl text-center">
+                                        <p className="font-medium">Hiện tại chưa có ngày khởi hành nào khả dụng</p>
+                                        <p className="text-sm opacity-90 mt-1">Vui lòng quay lại sau hoặc liên hệ hỗ trợ</p>
+                                    </div>
+                                );
+                            })()}
 
                             <div className="mt-5 text-white">
                                 <span className="text-sm opacity-80">Ngày đã chọn:</span>
@@ -570,8 +594,8 @@ const TourDetailUserPage: React.FC = () => {
                             tourName={tour.name}
                             price={tour.price}
                             maxParticipants={tour.maxParticipants}
-                            totalParticipants={tour.totalParticipants}
-                            startDates={tour.startDates || []}
+                            // ĐÃ XÓA: totalParticipants={tour.totalParticipants}
+                            startDateAvailability={startDateAvailability}   // ← THÊM DÒNG NÀY
                             transports={detail?.transports?.map(t => ({
                                 name: t.name,
                                 price: t.price,

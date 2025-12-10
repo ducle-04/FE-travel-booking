@@ -14,7 +14,6 @@ interface Tour {
     price: number;
     description: string;
     averageRating: number;
-    totalParticipants: number;
     maxParticipants: number;
     status: 'ACTIVE' | 'INACTIVE';
     createdAt: string;

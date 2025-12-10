@@ -15,8 +15,11 @@ import {
     fetchTourDetail,
     updateTourDetail,
     deleteAdditionalImage,
-    deleteVideo
+    deleteVideo,
+    fetchStartDateAvailability
 } from '../../services/tourDetailService';
+
+import type { StartDateAvailability } from '../../services/tourDetailService';
 
 import { fetchHotels } from '../../services/hotelService';
 
@@ -36,7 +39,6 @@ interface Tour {
     price: number;
     description: string;
     averageRating: number;
-    totalParticipants: number;
     maxParticipants: number;
     status: 'ACTIVE' | 'INACTIVE';
     createdAt: string;
@@ -46,8 +48,9 @@ interface Tour {
     categoryIcon?: string;
     startDates?: string[];
     tourDetail?: TourDetailType | null;
-}
+    views?: number;
 
+}
 const TourDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -88,6 +91,8 @@ const TourDetailPage: React.FC = () => {
 
     const [showImageModal, setShowImageModal] = useState(false);
     const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
+
+    const [startDateAvailability, setStartDateAvailability] = useState<StartDateAvailability[]>([]);
 
     // Modal chọn khách sạn
     const [showHotelModal, setShowHotelModal] = useState(false);
@@ -141,6 +146,13 @@ const TourDetailPage: React.FC = () => {
                 setTransports(d.transports || []);
                 setSelectedHotels(d.selectedHotels || []);
                 setSelectedHotelIds(d.selectedHotels?.map(h => h.id) || []);
+            }
+            try {
+                const availability = await fetchStartDateAvailability(id!);
+                setStartDateAvailability(availability);
+            } catch (err) {
+                console.warn('Không thể tải dữ liệu chỗ trống theo ngày:', err);
+                setStartDateAvailability([]);
             }
         } catch (error: any) {
             toast.error(error.message || 'Không thể tải chi tiết tour');
@@ -358,25 +370,56 @@ const TourDetailPage: React.FC = () => {
                     <div className={`p-6 rounded-2xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                         <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                             <CalendarCheck className="text-blue-600" size={24} />
-                            Ngày Khởi Hành
+                            Ngày Khởi Hành & Chỗ Trống
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {tour.startDates.map((date, i) => (
-                                <div key={i} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200 dark:border-blue-800">
-                                    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Lịch trình {i + 1}</p>
-                                    <p className="text-lg font-bold text-blue-900 dark:text-blue-200 mt-1">
-                                        {formatDate(date)}
-                                    </p>
-                                </div>
-                            ))}
+                            {tour.startDates.map((dateStr, i) => {
+                                const availability = startDateAvailability.find(a => a.date === dateStr);
+                                const remaining = availability?.remainingSeats ?? 0;
+                                const isFull = remaining === 0;
+                                const isAvailable = availability?.available ?? true;
+
+                                return (
+                                    <div
+                                        key={i}
+                                        className={`p-4 rounded-xl border transition-all ${isFull
+                                                ? 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-800'
+                                                : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-200 dark:border-blue-800'
+                                            }`}
+                                    >
+                                        <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                            Lịch trình {i + 1}
+                                        </p>
+                                        <p className="text-lg font-bold text-blue-900 dark:text-blue-200 mt-1">
+                                            {formatDate(dateStr)}
+                                        </p>
+                                        <div className="mt-3 flex items-center justify-between">
+                                            <span className={`text-sm font-semibold ${isFull ? 'text-red-600' : 'text-green-600'}`}>
+                                                {isFull ? 'Hết chỗ' : `Còn ${remaining} chỗ`}
+                                            </span>
+                                            {isFull && <X className="w-5 h-5 text-red-600" />}
+                                            {!isFull && <Users className="w-5 h-5 text-green-600" />}
+                                        </div>
+                                        {!isAvailable && (
+                                            <p className="text-xs text-orange-600 mt-1">Ngày chưa khả dụng</p>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
+
+                        {startDateAvailability.length === 0 && (
+                            <p className="text-center text-gray-500 py-4">
+                                Không có dữ liệu chỗ trống (có thể chưa có ngày khởi hành nào được tạo)
+                            </p>
+                        )}
                     </div>
                 )}
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-                    <StatBox icon={Users} label="Tổng khách" value={tour.totalParticipants} color="indigo" />
-                    <StatBox icon={CalendarCheck} label="Đã đặt" value={tour.bookingsCount} color="emerald" />
-                    <StatBox icon={UserCheck} label="Tối đa" value={tour.maxParticipants} color="orange" />
+                    <StatBox icon={Users} label="Tổng lượt đặt" value={tour.bookingsCount} color="indigo" />
+                    <StatBox icon={CalendarCheck} label="Đánh giá" value={tour.reviewsCount} color="emerald" />
+                    <StatBox icon={UserCheck} label="Sức chứa tối đa" value={tour.maxParticipants} color="orange" />
                     <StatBox icon={CalendarDays} label="Tạo ngày" value={formatDate(tour.createdAt)} color="teal" />
                 </div>
 

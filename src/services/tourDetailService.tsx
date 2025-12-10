@@ -41,18 +41,22 @@ export const fetchTourDetail = async (tourId: string): Promise<Tour & { tourDeta
         const response = await axios.get(`http://localhost:8080/api/tours/${tourId}`);
         const tour = response.data.data;
 
-        // Đảm bảo views luôn có (vừa được tăng +1 ở backend)
         return {
             ...tour,
+
+            // BỔ SUNG CÁC FIELD QUAN TRỌNG
+            bookingsCount: tour.bookingsCount ?? 0,
+            totalParticipants: tour.totalParticipants ?? tour.bookingsCount ?? 0,
+            startDates: tour.startDates ?? [],
             views: tour.views ?? 0,
+
             tourDetail: tour.tourDetail || null,
         };
     } catch (error: any) {
-        const msg = error.response?.data?.message || 'Không thể tải chi tiết tour';
-        console.error('fetchTourDetail error:', msg);
-        throw new Error(msg);
+        throw new Error(error.response?.data?.message || 'Không thể tải chi tiết tour');
     }
 };
+
 
 // POST: Cập nhật chi tiết tour - ĐÚNG THEO BE
 export const updateTourDetail = async (
